@@ -1,5 +1,5 @@
 {
-	"name": "n8n-nodes-<...>",
+	"name": "n8n-nodes-allsign",
 	"version": "0.1.0",
 	"description": "",
 	"license": "MIT",
@@ -8,12 +8,12 @@
 		"n8n-community-node-package"
 	],
 	"author": {
-		"name": "",
-		"email": ""
+		"name": "AllSign",
+		"email": "servicios@allsign.io"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/<...>/n8n-nodes-<...>.git"
+		"url": "https://github.com/allsign/n8n-nodes-allsign.git"
 	},
 	"scripts": {
 		"build": "n8n-node build",
