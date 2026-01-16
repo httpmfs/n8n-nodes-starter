@@ -1,0 +1,17 @@
+{
+  "name": "example",
+  "displayName": "Example",
+  "description": "Example node",
+  "node": "n8n-nodes-allsign.example",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["Development"],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": "https://github.com/your-org/n8n-nodes-allsign"
+      }
+    ]
+  }
+}
+
