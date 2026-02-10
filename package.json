@@ -1,11 +1,21 @@
 {
 	"name": "n8n-nodes-allsign",
-	"version": "0.1.0",
-	"description": "",
+	"version": "1.0.0",
+	"description": "n8n community node for AllSign - Electronic signature, document management. Firma electrónica, contratos, documentos.",
 	"license": "MIT",
-	"homepage": "",
+	"homepage": "https://allsign.io",
 	"keywords": [
-		"n8n-community-node-package"
+		"n8n-community-node-package",
+		"n8n",
+		"allsign",
+		"document-signing",
+		"esignature",
+		"signature",
+		"firma",
+		"documento",
+		"contrato",
+		"pdf",
+		"contract"
 	],
 	"author": {
 		"name": "AllSign",
@@ -31,16 +41,16 @@
 		"n8nNodesApiVersion": 1,
 		"strict": true,
 		"credentials": [
-			"dist/credentials/GithubIssuesApi.credentials.js",
-			"dist/credentials/GithubIssuesOAuth2Api.credentials.js"
+			"dist/credentials/AllSignApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/GithubIssues/GithubIssues.node.js",
-			"dist/nodes/Example/Example.node.js"
+			"dist/nodes/Allsign/Allsign.node.js",
+			"dist/nodes/AllsignTrigger/AllsignTrigger.node.js"
 		]
 	},
 	"devDependencies": {
 		"@n8n/node-cli": "*",
+		"@types/node": "^25.2.2",
 		"eslint": "9.32.0",
 		"prettier": "3.6.2",
 		"release-it": "^19.0.4",
