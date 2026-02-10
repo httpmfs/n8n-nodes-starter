@@ -1,0 +1,29 @@
+{
+    "name": "allsignTrigger",
+    "displayName": "AllSign Trigger",
+    "description": "Starts a workflow when an AllSign event occurs",
+    "node": "n8n-nodes-allsign.allsignTrigger",
+    "nodeVersion": "1.0",
+    "codexVersion": "1.0",
+    "categories": [
+        "Productivity"
+    ],
+    "subcategories": {
+        "Productivity": [
+            "Document Management"
+        ]
+    },
+    "alias": [
+        "firma",
+        "webhook",
+        "signature",
+        "signed"
+    ],
+    "resources": {
+        "primaryDocumentation": [
+            {
+                "url": "https://docs.allsign.io"
+            }
+        ]
+    }
+}
