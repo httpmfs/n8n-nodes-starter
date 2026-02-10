@@ -1,17 +1,32 @@
 {
-  "name": "example",
-  "displayName": "Example",
-  "description": "Example node",
-  "node": "n8n-nodes-allsign.example",
+  "name": "allsign",
+  "displayName": "AllSign",
+  "description": "Create, sign, and manage documents with AllSign e-signature platform",
+  "node": "n8n-nodes-allsign.allsign",
   "nodeVersion": "1.0",
   "codexVersion": "1.0",
-  "categories": ["Development"],
+  "categories": [
+    "Productivity"
+  ],
+  "subcategories": {
+    "Productivity": [
+      "Document Management"
+    ]
+  },
+  "alias": [
+    "firma",
+    "documento",
+    "contrato",
+    "signature",
+    "pdf",
+    "sign",
+    "esignature"
+  ],
   "resources": {
     "primaryDocumentation": [
       {
-        "url": "https://github.com/your-org/n8n-nodes-allsign"
+        "url": "https://docs.allsign.io"
       }
     ]
   }
 }
-
