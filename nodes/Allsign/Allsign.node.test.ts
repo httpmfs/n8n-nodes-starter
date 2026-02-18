@@ -55,7 +55,7 @@ describe('AllSign Node', () => {
 			expect(node.description.displayName).toBe('AllSign');
 		});
 
-		it('should define all 4 resources', () => {
+		it('should define all 6 resources', () => {
 			const resourceProp = node.description.properties.find(
 				(p) => p.name === 'resource',
 			);
@@ -65,6 +65,8 @@ describe('AllSign Node', () => {
 			expect(resourceOptions).toContain('signer');
 			expect(resourceOptions).toContain('signatureField');
 			expect(resourceOptions).toContain('signature');
+			expect(resourceOptions).toContain('contact');
+			expect(resourceOptions).toContain('folder');
 		});
 
 		it('should have codex aliases for all signature types', () => {
@@ -83,6 +85,7 @@ describe('AllSign Node', () => {
 			const opValues = (opProp as any).options.map((o: any) => o.value);
 			expect(opValues).toEqual(expect.arrayContaining([
 				'create', 'get', 'getAll', 'send', 'download', 'void', 'delete',
+				'update', 'invite', 'inviteBulk', 'getStats',
 				'updateSignatureValidations', 'updateSignatureState',
 			]));
 		});
@@ -491,4 +494,407 @@ describe('AllSign Node', () => {
 			expect(result[0][0].json).toHaveProperty('success', true);
 		});
 	});
+
+	// ----------------------------------------------------------
+	// Auth Headers
+	// ----------------------------------------------------------
+	describe('Auth Headers', () => {
+		it('should include Authorization Bearer header in all requests', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-1' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'get',
+				documentId: 'doc-1',
+			});
+
+			await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				headers: { Authorization: 'Bearer allsign_live_sk_test123' },
+			}));
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Document: Update
+	// ----------------------------------------------------------
+	describe('Document: Update', () => {
+		it('should call PATCH /v2/documents/{id} with update fields', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-123', name: 'Updated Name' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'update',
+				documentId: 'doc-123',
+				updateFields: { name: 'Updated Name', description: 'New desc' },
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'PATCH',
+				url: 'https://api.allsign.io/v2/documents/doc-123',
+				body: { name: 'Updated Name', description: 'New desc' },
+			}));
+			expect(result[0][0].json).toHaveProperty('name', 'Updated Name');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Document: Get Stats
+	// ----------------------------------------------------------
+	describe('Document: Get Stats', () => {
+		it('should call GET /v2/documents/stats', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ total: 42, pending: 10 });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'getStats',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/documents/stats',
+			}));
+			expect(result[0][0].json).toHaveProperty('total', 42);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Document: Invite
+	// ----------------------------------------------------------
+	describe('Document: Invite', () => {
+		it('should call POST /v2/documents/{id}/invite with email', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ success: true });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'invite',
+				documentId: 'doc-123',
+				inviteEmail: 'signer@test.com',
+				inviteName: 'John Doe',
+				inviteMessage: 'Please sign this',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'POST',
+				url: 'https://api.allsign.io/v2/documents/doc-123/invite',
+				body: expect.objectContaining({
+					email: 'signer@test.com',
+					name: 'John Doe',
+					message: 'Please sign this',
+				}),
+			}));
+			expect(result[0][0].json).toEqual({ success: true });
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Document: Invite Bulk
+	// ----------------------------------------------------------
+	describe('Document: Invite Bulk', () => {
+		it('should call POST /v2/documents/{id}/invite-bulk with participants', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ success: true, invited: 2 });
+
+			const participants = [
+				{ email: 'a@test.com', name: 'Alice' },
+				{ email: 'b@test.com', name: 'Bob' },
+			];
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'inviteBulk',
+				documentId: 'doc-123',
+				'inviteParticipants.participantValues': participants,
+				inviteBulkMessage: 'Sign please',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'POST',
+				url: 'https://api.allsign.io/v2/documents/doc-123/invite-bulk',
+				body: expect.objectContaining({
+					participants,
+					message: 'Sign please',
+				}),
+			}));
+			expect(result[0][0].json).toHaveProperty('invited', 2);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Get All
+	// ----------------------------------------------------------
+	describe('Folder: Get All', () => {
+		it('should call GET /v2/folders', async () => {
+			mockHttpRequest.mockResolvedValueOnce([{ id: 'f1', name: 'Contracts' }]);
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'getAll',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/folders',
+			}));
+			expect(result[0]).toHaveLength(1);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Get
+	// ----------------------------------------------------------
+	describe('Folder: Get', () => {
+		it('should call GET /v2/folders/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'f1', name: 'Contracts' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'get',
+				folderId: 'f1',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/folders/f1',
+			}));
+			expect(result[0][0].json).toHaveProperty('name', 'Contracts');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Create
+	// ----------------------------------------------------------
+	describe('Folder: Create', () => {
+		it('should call POST /v2/folders with name', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'f2', name: 'New Folder' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'create',
+				folderName: 'New Folder',
+				parentFolderId: 'f1',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'POST',
+				url: 'https://api.allsign.io/v2/folders',
+				body: expect.objectContaining({ name: 'New Folder' }),
+			}));
+			expect(result[0][0].json).toHaveProperty('id', 'f2');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Update
+	// ----------------------------------------------------------
+	describe('Folder: Update', () => {
+		it('should call PATCH /v2/folders/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'f1', name: 'Renamed' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'update',
+				folderId: 'f1',
+				folderUpdateFields: { name: 'Renamed' },
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'PATCH',
+				url: 'https://api.allsign.io/v2/folders/f1',
+			}));
+			expect(result[0][0].json).toHaveProperty('name', 'Renamed');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Delete
+	// ----------------------------------------------------------
+	describe('Folder: Delete', () => {
+		it('should call DELETE /v2/folders/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ success: true });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'delete',
+				folderId: 'f1',
+			});
+
+			await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'DELETE',
+				url: 'https://api.allsign.io/v2/folders/f1',
+			}));
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Folder: Get Documents
+	// ----------------------------------------------------------
+	describe('Folder: Get Documents', () => {
+		it('should call GET /v2/folders/{id}/documents', async () => {
+			mockHttpRequest.mockResolvedValueOnce([{ id: 'doc-1' }, { id: 'doc-2' }]);
+
+			const fn = getMockExecuteFunctions({
+				resource: 'folder',
+				operation: 'getDocuments',
+				folderId: 'f1',
+				limit: 25,
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/folders/f1/documents',
+			}));
+			expect(result[0]).toHaveLength(2);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Get All
+	// ----------------------------------------------------------
+	describe('Contact: Get All', () => {
+		it('should call GET /v2/contacts', async () => {
+			mockHttpRequest.mockResolvedValueOnce([{ id: 'c1', email: 'a@test.com' }]);
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'getAll',
+				limit: 50,
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/contacts',
+			}));
+			expect(result[0]).toHaveLength(1);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Get
+	// ----------------------------------------------------------
+	describe('Contact: Get', () => {
+		it('should call GET /v2/contacts/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'c1', name: 'Alice' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'get',
+				contactId: 'c1',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/contacts/c1',
+			}));
+			expect(result[0][0].json).toHaveProperty('name', 'Alice');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Create
+	// ----------------------------------------------------------
+	describe('Contact: Create', () => {
+		it('should call POST /v2/contacts with email and name', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'c2', email: 'new@test.com' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'create',
+				contactEmail: 'new@test.com',
+				contactName: 'New Contact',
+				contactPhone: '+5215555555',
+				contactCompany: 'ACME',
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'POST',
+				url: 'https://api.allsign.io/v2/contacts',
+				body: expect.objectContaining({
+					email: 'new@test.com',
+					name: 'New Contact',
+				}),
+			}));
+			expect(result[0][0].json).toHaveProperty('email', 'new@test.com');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Update
+	// ----------------------------------------------------------
+	describe('Contact: Update', () => {
+		it('should call PATCH /v2/contacts/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ id: 'c1', name: 'Updated' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'update',
+				contactId: 'c1',
+				contactUpdateFields: { name: 'Updated' },
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'PATCH',
+				url: 'https://api.allsign.io/v2/contacts/c1',
+			}));
+			expect(result[0][0].json).toHaveProperty('name', 'Updated');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Delete
+	// ----------------------------------------------------------
+	describe('Contact: Delete', () => {
+		it('should call DELETE /v2/contacts/{id}', async () => {
+			mockHttpRequest.mockResolvedValueOnce({ success: true });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'delete',
+				contactId: 'c1',
+			});
+
+			await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'DELETE',
+				url: 'https://api.allsign.io/v2/contacts/c1',
+			}));
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Contact: Get Documents
+	// ----------------------------------------------------------
+	describe('Contact: Get Documents', () => {
+		it('should call GET /v2/contacts/{id}/documents', async () => {
+			mockHttpRequest.mockResolvedValueOnce([{ id: 'doc-1' }]);
+
+			const fn = getMockExecuteFunctions({
+				resource: 'contact',
+				operation: 'getDocuments',
+				contactId: 'c1',
+				limit: 25,
+			});
+
+			const result = await node.execute.call(fn);
+			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+				method: 'GET',
+				url: 'https://api.allsign.io/v2/contacts/c1/documents',
+			}));
+			expect(result[0]).toHaveLength(1);
+		});
+	});
 });
+
