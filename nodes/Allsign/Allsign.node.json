@@ -1,7 +1,7 @@
 {
   "name": "allsign",
   "displayName": "AllSign",
-  "description": "Create, sign, and manage documents with AllSign e-signature platform",
+  "description": "Create, sign, and manage documents with AllSign e-signature platform. Firma electrónica, biométrica, NOM-151, FEA, eIDAS.",
   "node": "n8n-nodes-allsign.allsign",
   "nodeVersion": "1.0",
   "codexVersion": "1.0",
@@ -20,7 +20,21 @@
     "signature",
     "pdf",
     "sign",
-    "esignature"
+    "esignature",
+    "biometrica",
+    "biometric",
+    "nom-151",
+    "nom151",
+    "fea",
+    "eidas",
+    "autografa",
+    "firmante",
+    "signer",
+    "firma electronica",
+    "firma biometrica",
+    "campo de firma",
+    "signature field",
+    "legal"
   ],
   "resources": {
     "primaryDocumentation": [

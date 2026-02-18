@@ -17,7 +17,8 @@ export class Allsign implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Firma electrónica, contratos, documentos PDF. Create, sign, and manage documents with AllSign.',
+		description:
+			'Firma electrónica, contratos, documentos PDF. Create, sign, and manage documents with AllSign.',
 		defaults: {
 			name: 'AllSign',
 		},
@@ -31,7 +32,20 @@ export class Allsign implements INodeType {
 			},
 		],
 		codex: {
-			alias: ['Firma', 'Documento', 'Contrato', 'Signature', 'PDF', 'Sign'],
+			alias: [
+				'Firma',
+				'Documento',
+				'Contrato',
+				'Signature',
+				'PDF',
+				'Sign',
+				'Biometrica',
+				'NOM-151',
+				'FEA',
+				'eIDAS',
+				'Signer',
+				'Firmante',
+			],
 		},
 		properties: [
 			// ------ Resource ------
@@ -43,8 +57,28 @@ export class Allsign implements INodeType {
 				default: 'document',
 				options: [
 					{
+						name: 'Contact',
+						value: 'contact',
+					},
+					{
 						name: 'Document',
 						value: 'document',
+					},
+					{
+						name: 'Folder',
+						value: 'folder',
+					},
+					{
+						name: 'Signature',
+						value: 'signature',
+					},
+					{
+						name: 'Signature Field',
+						value: 'signatureField',
+					},
+					{
+						name: 'Signer',
+						value: 'signer',
 					},
 				],
 			},
@@ -92,10 +126,46 @@ export class Allsign implements INodeType {
 						action: 'Get many documents',
 					},
 					{
+						name: 'Get Stats',
+						value: 'getStats',
+						description: 'Get document statistics (total, by type, recent)',
+						action: 'Get document statistics',
+					},
+					{
+						name: 'Invite',
+						value: 'invite',
+						description: 'Invite a participant to sign a document (V2)',
+						action: 'Invite a participant',
+					},
+					{
+						name: 'Invite Bulk',
+						value: 'inviteBulk',
+						description: 'Invite multiple participants at once (V2)',
+						action: 'Invite multiple participants',
+					},
+					{
 						name: 'Send',
 						value: 'send',
 						description: 'Send a document for signing',
 						action: 'Send a document for signing',
+					},
+					{
+						name: 'Update',
+						value: 'update',
+						description: 'Update a document (rename, move to folder, update config)',
+						action: 'Update a document',
+					},
+					{
+						name: 'Update Signature State',
+						value: 'updateSignatureState',
+						description: 'Update the signature workflow state of a document',
+						action: 'Update signature state',
+					},
+					{
+						name: 'Update Signature Validations',
+						value: 'updateSignatureValidations',
+						description: 'Configure signature types: Autógrafa, FEA, NOM-151, eIDAS, Biométrica',
+						action: 'Update signature validations',
 					},
 					{
 						name: 'Void',
@@ -183,7 +253,8 @@ export class Allsign implements INodeType {
 					loadOptionsMethod: 'getTemplates',
 				},
 				default: '',
-				description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				description:
+					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 				displayOptions: {
 					show: {
 						resource: ['document'],
@@ -203,7 +274,18 @@ export class Allsign implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['get', 'delete', 'download', 'send', 'void'],
+						operation: [
+							'get',
+							'delete',
+							'download',
+							'send',
+							'void',
+                                                        'update',
+                                                        'invite',
+                                                        'inviteBulk',
+							'updateSignatureValidations',
+							'updateSignatureState',
+						],
 					},
 				},
 			},
@@ -315,6 +397,523 @@ export class Allsign implements INodeType {
 					},
 				},
 			},
+
+			// ====== UPDATE fields ======
+			{
+				displayName: 'Update Fields',
+				name: 'updateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['document'], operation: ['update'] } },
+				options: [
+					{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'New name for the document' },
+					{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'New description' },
+					{ displayName: 'Folder ID', name: 'folderId', type: 'string', default: '', description: 'Move document to this folder (use empty to remove from folder)' },
+				],
+			},
+
+			// ====== INVITE fields ======
+			{
+				displayName: 'Participant Email',
+				name: 'inviteEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'participant@email.com',
+				description: 'Email of the participant to invite',
+				displayOptions: { show: { resource: ['document'], operation: ['invite'] } },
+			},
+			{
+				displayName: 'Participant Name',
+				name: 'inviteName',
+				type: 'string',
+				default: '',
+				placeholder: 'John Doe',
+				description: 'Name of the participant',
+				displayOptions: { show: { resource: ['document'], operation: ['invite'] } },
+			},
+			{
+				displayName: 'Message',
+				name: 'inviteMessage',
+				type: 'string',
+				typeOptions: { rows: 3 },
+				default: '',
+				placeholder: 'Please sign this document...',
+				description: 'Optional message to include in the invitation',
+				displayOptions: { show: { resource: ['document'], operation: ['invite'] } },
+			},
+
+			// ====== INVITE BULK fields ======
+			{
+				displayName: 'Participants',
+				name: 'inviteParticipants',
+				type: 'fixedCollection',
+				typeOptions: { multipleValues: true },
+				default: {},
+				placeholder: 'Add Participant',
+				description: 'Participants to invite',
+				displayOptions: { show: { resource: ['document'], operation: ['inviteBulk'] } },
+				options: [
+					{
+						name: 'participantValues',
+						displayName: 'Participant',
+						values: [
+							{ displayName: 'Email', name: 'email', type: 'string', default: '', required: true, placeholder: 'participant@email.com', description: 'Email of the participant' },
+							{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'Name of the participant' },
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Message',
+				name: 'inviteBulkMessage',
+				type: 'string',
+				typeOptions: { rows: 3 },
+				default: '',
+				placeholder: 'Please sign this document...',
+				description: 'Optional message to include in the invitations',
+				displayOptions: { show: { resource: ['document'], operation: ['inviteBulk'] } },
+			},
+
+			// ====== UPDATE SIGNATURE VALIDATIONS fields ======
+			{
+				displayName: 'Autógrafa',
+				name: 'autografa',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to require handwritten signature (Firma manuscrita digital)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'FEA (Firma Electrónica Avanzada)',
+				name: 'fea',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require Firma Electrónica Avanzada validation',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'NOM-151',
+				name: 'nom151',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require NOM-151-SCFI validation (Mexico)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'eIDAS',
+				name: 'eidas',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require eIDAS validation (European Union)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'Firma Biométrica',
+				name: 'firmaBiometrica',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require biometric signature (Selfie/proof of life)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+
+			// ====== UPDATE SIGNATURE STATE fields ======
+			{
+				displayName: 'Status',
+				name: 'signatureStatus',
+				type: 'options',
+				default: 'RECOLECTANDO_FIRMANTES',
+				required: true,
+				description: 'The new signature workflow state',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureState'] } },
+				options: [
+					{ name: 'Sellos PDF', value: 'SELLOS_PDF' },
+					{ name: 'Recolectando Firmantes', value: 'RECOLECTANDO_FIRMANTES' },
+					{ name: 'Esperando Firmas', value: 'ESPERANDO_FIRMAS' },
+					{ name: 'Generando PDF', value: 'GENERANDO_PDF' },
+					{ name: 'Todos Firmaron', value: 'TODOS_FIRMARON' },
+				],
+			},
+
+			// ============================================================
+			// SIGNER RESOURCE
+			// ============================================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['signer'] } },
+				default: 'add',
+				options: [
+					{ name: 'Add', value: 'add', description: 'Add a signer to a document', action: 'Add a signer' },
+				],
+			},
+			{
+				displayName: 'Document ID',
+				name: 'documentId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'The ID of the document',
+				displayOptions: { show: { resource: ['signer'] } },
+			},
+			{
+				displayName: 'Signer Email',
+				name: 'signerEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'signer@email.com',
+				description: 'Email address of the signer to add',
+				displayOptions: { show: { resource: ['signer'], operation: ['add'] } },
+			},
+			{
+				displayName: 'Invited By Email',
+				name: 'invitedByEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'you@email.com',
+				description: 'Email of the user who is adding the signer',
+				displayOptions: { show: { resource: ['signer'], operation: ['add'] } },
+			},
+
+			// ============================================================
+			// SIGNATURE FIELD RESOURCE
+			// ============================================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['signatureField'] } },
+				default: 'add',
+				options: [
+					{ name: 'Add', value: 'add', description: 'Add a signature field to a document', action: 'Add a signature field' },
+					{ name: 'Add Multiple', value: 'addMultiple', description: 'Add multiple signature fields at once', action: 'Add multiple signature fields' },
+					{ name: 'Delete', value: 'delete', description: 'Delete a signature field', action: 'Delete a signature field' },
+					{ name: 'Update', value: 'update', description: 'Update position or settings of a signature field', action: 'Update a signature field' },
+				],
+			},
+			{
+				displayName: 'Document ID',
+				name: 'documentId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'The ID of the document',
+				displayOptions: { show: { resource: ['signatureField'] } },
+			},
+			// -- Add single field --
+			{
+				displayName: 'Signer Email',
+				name: 'sfSignerEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'signer@email.com',
+				description: 'Email of the signer for this signature field',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['add'] } },
+			},
+			{
+				displayName: 'Page Number',
+				name: 'sfPageNumber',
+				type: 'number',
+				default: 1,
+				required: true,
+				typeOptions: { minValue: 1 },
+				description: 'Page number where the signature field will be placed',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['add'] } },
+			},
+			{
+				displayName: 'Additional Fields',
+				name: 'sfAdditionalFields',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: { show: { resource: ['signatureField'], operation: ['add'] } },
+				options: [
+					{ displayName: 'X Position', name: 'x', type: 'number', default: 0, description: 'X coordinate' },
+					{ displayName: 'Y Position', name: 'y', type: 'number', default: 0, description: 'Y coordinate' },
+					{ displayName: 'Width', name: 'width', type: 'number', default: 200, description: 'Width of the field' },
+					{ displayName: 'Height', name: 'height', type: 'number', default: 100, description: 'Height of the field' },
+					{ displayName: 'Anchor String', name: 'anchorString', type: 'string', default: '', description: 'Text anchor to position the field in the PDF' },
+					{ displayName: 'Include in All Pages', name: 'includeInAllPages', type: 'boolean', default: false, description: 'Whether the field should appear on all pages' },
+					{ displayName: 'Field Type', name: 'type', type: 'string', default: 'signatureField', description: 'Type of the field' },
+				],
+			},
+			// -- Add multiple fields --
+			{
+				displayName: 'Fields',
+				name: 'sfFields',
+				type: 'fixedCollection',
+				typeOptions: { multipleValues: true },
+				default: {},
+				placeholder: 'Add Signature Field',
+				description: 'Signature fields to add',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['addMultiple'] } },
+				options: [
+					{
+						name: 'fieldValues',
+						displayName: 'Signature Field',
+						values: [
+							{ displayName: 'Signer Email', name: 'signerEmail', type: 'string', default: '', required: true, description: 'Email of the signer' },
+							{ displayName: 'Page Number', name: 'pageNumber', type: 'number', default: 1, required: true, description: 'Page number' },
+							{ displayName: 'X Position', name: 'x', type: 'number', default: 0, description: 'X coordinate' },
+							{ displayName: 'Y Position', name: 'y', type: 'number', default: 0, description: 'Y coordinate' },
+							{ displayName: 'Width', name: 'width', type: 'number', default: 200, description: 'Width' },
+							{ displayName: 'Height', name: 'height', type: 'number', default: 100, description: 'Height' },
+						],
+					},
+				],
+			},
+			// -- Update field --
+			{
+				displayName: 'Field ID',
+				name: 'sfFieldId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'ID of the signature field to update',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['update'] } },
+			},
+			{
+				displayName: 'Signer Email',
+				name: 'sfUpdateSignerEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'Email of the signer who owns the field',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['update'] } },
+			},
+			{
+				displayName: 'Update Fields',
+				name: 'sfUpdateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['signatureField'], operation: ['update'] } },
+				options: [
+					{ displayName: 'X Position', name: 'x', type: 'number', default: 0, description: 'Updated X coordinate' },
+					{ displayName: 'Y Position', name: 'y', type: 'number', default: 0, description: 'Updated Y coordinate' },
+					{ displayName: 'Page Number', name: 'pageNumber', type: 'number', default: 1, description: 'Updated page number' },
+					{ displayName: 'Include in All Pages', name: 'includeInAllPages', type: 'boolean', default: false, description: 'Whether the field should appear on all pages' },
+				],
+			},
+			// -- Delete field --
+			{
+				displayName: 'Field ID',
+				name: 'sfDeleteFieldId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'ID of the signature field to delete',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['delete'] } },
+			},
+			{
+				displayName: 'Signer Email',
+				name: 'sfDeleteSignerEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'Email of the signer who owns the field',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['delete'] } },
+			},
+			{
+				displayName: 'Delete Linked Fields',
+				name: 'deleteLinkedFields',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to also delete linked fields',
+				displayOptions: { show: { resource: ['signatureField'], operation: ['delete'] } },
+			},
+
+			// ============================================================
+			// SIGNATURE RESOURCE
+			// ============================================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['signature'] } },
+				default: 'delete',
+				options: [
+					{ name: 'Delete', value: 'delete', description: 'Delete a signature from a document', action: 'Delete a signature' },
+				],
+			},
+			{
+				displayName: 'Document ID',
+				name: 'documentId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'The ID of the document',
+				displayOptions: { show: { resource: ['signature'] } },
+			},
+			{
+				displayName: 'Signature ID',
+				name: 'signatureId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'ID of the signature to delete',
+				displayOptions: { show: { resource: ['signature'], operation: ['delete'] } },
+			},
+
+			// ============================================================
+			// FOLDER RESOURCE
+			// ============================================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['folder'] } },
+				default: 'getAll',
+				options: [
+					{ name: 'Create', value: 'create', description: 'Create a new folder', action: 'Create a folder' },
+					{ name: 'Delete', value: 'delete', description: 'Delete a folder', action: 'Delete a folder' },
+					{ name: 'Get', value: 'get', description: 'Get a folder by ID', action: 'Get a folder' },
+					{ name: 'Get Documents', value: 'getDocuments', description: 'Get documents in a folder', action: 'Get documents in a folder' },
+					{ name: 'Get Many', value: 'getAll', description: 'List all folders in tree structure', action: 'Get many folders' },
+					{ name: 'Update', value: 'update', description: 'Rename or move a folder', action: 'Update a folder' },
+				],
+			},
+			{
+				displayName: 'Folder ID',
+				name: 'folderId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'The ID of the folder',
+				displayOptions: { show: { resource: ['folder'], operation: ['get', 'delete', 'update', 'getDocuments'] } },
+			},
+			{
+				displayName: 'Folder Name',
+				name: 'folderName',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'e.g. Contracts 2026',
+				description: 'Name of the new folder',
+				displayOptions: { show: { resource: ['folder'], operation: ['create'] } },
+			},
+			{
+				displayName: 'Parent Folder ID',
+				name: 'parentFolderId',
+				type: 'string',
+				default: '',
+				description: 'ID of the parent folder (leave empty for root)',
+				displayOptions: { show: { resource: ['folder'], operation: ['create'] } },
+			},
+			{
+				displayName: 'Update Fields',
+				name: 'folderUpdateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['folder'], operation: ['update'] } },
+				options: [
+					{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'New name for the folder' },
+					{ displayName: 'Parent Folder ID', name: 'parentFolderId', type: 'string', default: '', description: 'Move folder to a new parent' },
+				],
+			},
+			{
+				displayName: 'Limit',
+				name: 'folderDocsLimit',
+				type: 'number',
+				default: 50,
+				typeOptions: { minValue: 1 },
+				description: 'Max number of documents to return',
+				displayOptions: { show: { resource: ['folder'], operation: ['getDocuments'] } },
+			},
+
+			// ============================================================
+			// CONTACT RESOURCE
+			// ============================================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['contact'] } },
+				default: 'getAll',
+				options: [
+					{ name: 'Create', value: 'create', description: 'Create a new contact', action: 'Create a contact' },
+					{ name: 'Delete', value: 'delete', description: 'Delete a contact', action: 'Delete a contact' },
+					{ name: 'Get', value: 'get', description: 'Get a contact by ID', action: 'Get a contact' },
+					{ name: 'Get Documents', value: 'getDocuments', description: 'Get documents for a contact', action: 'Get documents for a contact' },
+					{ name: 'Get Many', value: 'getAll', description: 'List all contacts', action: 'Get many contacts' },
+					{ name: 'Update', value: 'update', description: 'Update a contact', action: 'Update a contact' },
+				],
+			},
+			{
+				displayName: 'Contact ID',
+				name: 'contactId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'The ID of the contact',
+				displayOptions: { show: { resource: ['contact'], operation: ['get', 'delete', 'update', 'getDocuments'] } },
+			},
+			{
+				displayName: 'Email',
+				name: 'contactEmail',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'contact@email.com',
+				description: 'Email of the contact',
+				displayOptions: { show: { resource: ['contact'], operation: ['create'] } },
+			},
+			{
+				displayName: 'Name',
+				name: 'contactName',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'John Doe',
+				description: 'Name of the contact',
+				displayOptions: { show: { resource: ['contact'], operation: ['create'] } },
+			},
+			{
+				displayName: 'Additional Fields',
+				name: 'contactAdditionalFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['contact'], operation: ['create'] } },
+				options: [
+					{ displayName: 'Phone', name: 'phone', type: 'string', default: '', description: 'Phone number' },
+					{ displayName: 'Company', name: 'company', type: 'string', default: '', description: 'Company name' },
+				],
+			},
+			{
+				displayName: 'Update Fields',
+				name: 'contactUpdateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['contact'], operation: ['update'] } },
+				options: [
+					{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'Updated name' },
+					{ displayName: 'Email', name: 'email', type: 'string', default: '', description: 'Updated email' },
+					{ displayName: 'Phone', name: 'phone', type: 'string', default: '', description: 'Updated phone' },
+					{ displayName: 'Company', name: 'company', type: 'string', default: '', description: 'Updated company' },
+				],
+			},
+			{
+				displayName: 'Limit',
+				name: 'contactLimit',
+				type: 'number',
+				default: 50,
+				typeOptions: { minValue: 1 },
+				description: 'Max number of results to return',
+				displayOptions: { show: { resource: ['contact'], operation: ['getAll', 'getDocuments'] } },
+			},
 		],
 	};
 
@@ -322,14 +921,13 @@ export class Allsign implements INodeType {
 		loadOptions: {
 			async getTemplates(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const credentials = await this.getCredentials('allSignApi');
-				const environment = credentials.environment as string;
-				const baseUrl = environment === 'sandbox'
-					? 'https://api.sandbox.allsign.io'
-					: 'https://api.allsign.io';
+				const baseUrl = (credentials.baseUrl as string) || 'https://api.allsign.io';
+				const apiKey = credentials.apiKey as string;
 
 				try {
 					const response = await this.helpers.httpRequest({
 						method: 'GET',
+						headers: { Authorization: `Bearer ${apiKey}` },
 						url: `${baseUrl}/v2/templates`,
 						json: true,
 					});
@@ -353,12 +951,10 @@ export class Allsign implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
-
 		const credentials = await this.getCredentials('allSignApi');
-		const environment = credentials.environment as string;
-		const baseUrl = environment === 'sandbox'
-			? 'https://api.sandbox.allsign.io'
-			: 'https://api.allsign.io';
+		const baseUrl = (credentials.baseUrl as string) || 'https://api.allsign.io';
+		const apiKey = credentials.apiKey as string;
+		const authHeaders = { Authorization: `Bearer ${apiKey}` };
 
 		for (let i = 0; i < items.length; i++) {
 			try {
@@ -381,6 +977,7 @@ export class Allsign implements INodeType {
 
 							response = await this.helpers.httpRequest({
 								method: 'POST',
+headers: authHeaders,
 								url: `${baseUrl}/v2/documents`,
 								body,
 								json: true,
@@ -403,6 +1000,7 @@ export class Allsign implements INodeType {
 
 							response = await this.helpers.httpRequest({
 								method: 'POST',
+headers: authHeaders,
 								url: `${baseUrl}/v2/documents`,
 								body,
 								json: true,
@@ -417,6 +1015,7 @@ export class Allsign implements INodeType {
 						const documentId = this.getNodeParameter('documentId', i) as string;
 						const response = await this.helpers.httpRequest({
 							method: 'GET',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents/${documentId}`,
 							json: true,
 						});
@@ -428,6 +1027,7 @@ export class Allsign implements INodeType {
 						const limit = this.getNodeParameter('limit', i) as number;
 						const response = await this.helpers.httpRequest({
 							method: 'GET',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents`,
 							qs: { limit },
 							json: true,
@@ -458,6 +1058,7 @@ export class Allsign implements INodeType {
 
 						const response = await this.helpers.httpRequest({
 							method: 'POST',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents/${documentId}/send`,
 							body,
 							json: true,
@@ -472,6 +1073,7 @@ export class Allsign implements INodeType {
 
 						const response = await this.helpers.httpRequest({
 							method: 'GET',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents/${documentId}/download`,
 							encoding: 'arraybuffer',
 							returnFullResponse: true,
@@ -511,6 +1113,7 @@ export class Allsign implements INodeType {
 
 						const response = await this.helpers.httpRequest({
 							method: 'POST',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents/${documentId}/void`,
 							body,
 							json: true,
@@ -523,10 +1126,437 @@ export class Allsign implements INodeType {
 						const documentId = this.getNodeParameter('documentId', i) as string;
 						const response = await this.helpers.httpRequest({
 							method: 'DELETE',
+headers: authHeaders,
 							url: `${baseUrl}/v2/documents/${documentId}`,
 							json: true,
 						});
 						returnData.push({ json: (response as IDataObject) ?? { success: true, documentId } });
+					}
+
+					// ============ UPDATE SIGNATURE VALIDATIONS ============
+					else if (operation === 'updateSignatureValidations') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const autografa = this.getNodeParameter('autografa', i) as boolean;
+						const fea = this.getNodeParameter('fea', i) as boolean;
+						const nom151 = this.getNodeParameter('nom151', i) as boolean;
+						const eidas = this.getNodeParameter('eidas', i) as boolean;
+						const firmaBiometrica = this.getNodeParameter('firmaBiometrica', i) as boolean;
+
+						const response = await this.helpers.httpRequest({
+							method: 'PATCH',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/signature-validations`,
+							body: {
+								signatureValidations: {
+									autografa,
+									FEA: fea,
+									nom151,
+									eIDAS: eidas,
+									firmaBiometrica,
+								},
+							},
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ UPDATE SIGNATURE STATE ============
+					else if (operation === 'updateSignatureState') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const status = this.getNodeParameter('signatureStatus', i) as string;
+
+						const response = await this.helpers.httpRequest({
+							method: 'PATCH',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/signature-state`,
+							body: { status },
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ UPDATE (PATCH) ============
+					else if (operation === 'update') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const updateFields = this.getNodeParameter('updateFields', i, {}) as IDataObject;
+
+						const body: Record<string, unknown> = {};
+						if (updateFields.name) body.name = updateFields.name;
+						if (updateFields.description) body.description = updateFields.description;
+						if (updateFields.folderId !== undefined) body.folderId = updateFields.folderId || null;
+
+						const response = await this.helpers.httpRequest({
+							method: 'PATCH',
+headers: authHeaders,
+							url: `${baseUrl}/v2/documents/${documentId}`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ GET STATS ============
+					else if (operation === 'getStats') {
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/documents/stats`,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ INVITE (V2) ============
+					else if (operation === 'invite') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const email = this.getNodeParameter('inviteEmail', i) as string;
+						const name = this.getNodeParameter('inviteName', i, '') as string;
+						const message = this.getNodeParameter('inviteMessage', i, '') as string;
+
+						const body: Record<string, unknown> = { email };
+						if (name) body.name = name;
+						if (message) body.message = message;
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/v2/documents/${documentId}/invite`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ INVITE BULK (V2) ============
+					else if (operation === 'inviteBulk') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const participantsData = this.getNodeParameter('inviteParticipants.participantValues', i, []) as Array<{
+							email: string;
+							name?: string;
+						}>;
+						const message = this.getNodeParameter('inviteBulkMessage', i, '') as string;
+
+						const body: Record<string, unknown> = { participants: participantsData };
+						if (message) body.message = message;
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/v2/documents/${documentId}/invite-bulk`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+				}
+
+				// ============================================================
+				// SIGNER RESOURCE
+				// ============================================================
+				else if (resource === 'signer') {
+					if (operation === 'add') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const signerEmail = this.getNodeParameter('signerEmail', i) as string;
+						const invitedByEmail = this.getNodeParameter('invitedByEmail', i) as string;
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/add-signer`,
+							body: { signerEmail, invitedByEmail },
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+				}
+
+				// ============================================================
+				// SIGNATURE FIELD RESOURCE
+				// ============================================================
+				else if (resource === 'signatureField') {
+					const documentId = this.getNodeParameter('documentId', i) as string;
+
+					// ============ ADD ============
+					if (operation === 'add') {
+						const signerEmail = this.getNodeParameter('sfSignerEmail', i) as string;
+						const pageNumber = this.getNodeParameter('sfPageNumber', i) as number;
+						const additionalFields = this.getNodeParameter('sfAdditionalFields', i, {}) as IDataObject;
+
+						const body: Record<string, unknown> = {
+							signerEmail,
+							pageNumber,
+							...additionalFields,
+						};
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/add-signature-field`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ ADD MULTIPLE ============
+					else if (operation === 'addMultiple') {
+						const fieldsData = this.getNodeParameter('sfFields.fieldValues', i, []) as Array<{
+							signerEmail: string;
+							pageNumber: number;
+							x?: number;
+							y?: number;
+							width?: number;
+							height?: number;
+						}>;
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/add-signature-fields`,
+							body: { fields: fieldsData },
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ UPDATE ============
+					else if (operation === 'update') {
+						const fieldId = this.getNodeParameter('sfFieldId', i) as string;
+						const signerEmail = this.getNodeParameter('sfUpdateSignerEmail', i) as string;
+						const updateFields = this.getNodeParameter('sfUpdateFields', i, {}) as IDataObject;
+
+						const body: Record<string, unknown> = {
+							fieldId,
+							signerEmail,
+							...updateFields,
+						};
+
+						const response = await this.helpers.httpRequest({
+							method: 'PUT',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/update-signature-field`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					// ============ DELETE ============
+					else if (operation === 'delete') {
+						const fieldId = this.getNodeParameter('sfDeleteFieldId', i) as string;
+						const signerEmail = this.getNodeParameter('sfDeleteSignerEmail', i) as string;
+						const deleteLinkedFields = this.getNodeParameter('deleteLinkedFields', i) as boolean;
+
+						const response = await this.helpers.httpRequest({
+							method: 'DELETE',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/delete-signature-field`,
+							body: { fieldId, signerEmail, deleteLinkedFields },
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+				}
+
+				// ============================================================
+				// SIGNATURE RESOURCE
+				// ============================================================
+				else if (resource === 'signature') {
+					if (operation === 'delete') {
+						const documentId = this.getNodeParameter('documentId', i) as string;
+						const signatureId = this.getNodeParameter('signatureId', i) as string;
+
+						const response = await this.helpers.httpRequest({
+							method: 'DELETE',
+headers: authHeaders,
+							url: `${baseUrl}/api/documents/${documentId}/signature/${signatureId}`,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+				}
+
+				// ============================================================
+				// FOLDER RESOURCE
+				// ============================================================
+				else if (resource === 'folder') {
+					if (operation === 'getAll') {
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders`,
+							json: true,
+						});
+						if (Array.isArray(response)) {
+							for (const item of response) {
+								returnData.push({ json: item as IDataObject });
+							}
+						} else {
+							returnData.push({ json: response as IDataObject });
+						}
+					}
+
+					else if (operation === 'get') {
+						const folderId = this.getNodeParameter('folderId', i) as string;
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders/${folderId}`,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'create') {
+						const name = this.getNodeParameter('folderName', i) as string;
+						const parentFolderId = this.getNodeParameter('parentFolderId', i, '') as string;
+						const body: Record<string, unknown> = { name };
+						if (parentFolderId) body.parentFolderId = parentFolderId;
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'update') {
+						const folderId = this.getNodeParameter('folderId', i) as string;
+						const updateFields = this.getNodeParameter('folderUpdateFields', i, {}) as IDataObject;
+						const response = await this.helpers.httpRequest({
+							method: 'PATCH',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders/${folderId}`,
+							body: updateFields,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'delete') {
+						const folderId = this.getNodeParameter('folderId', i) as string;
+						await this.helpers.httpRequest({
+							method: 'DELETE',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders/${folderId}`,
+							json: true,
+						});
+						returnData.push({ json: { success: true, folderId } });
+					}
+
+					else if (operation === 'getDocuments') {
+						const folderId = this.getNodeParameter('folderId', i) as string;
+						const limit = this.getNodeParameter('folderDocsLimit', i) as number;
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/folders/${folderId}/documents`,
+							qs: { limit },
+							json: true,
+						});
+						if (Array.isArray(response)) {
+							for (const item of response) {
+								returnData.push({ json: item as IDataObject });
+							}
+						} else {
+							returnData.push({ json: response as IDataObject });
+						}
+					}
+				}
+
+				// ============================================================
+				// CONTACT RESOURCE
+				// ============================================================
+				else if (resource === 'contact') {
+					if (operation === 'getAll') {
+						const limit = this.getNodeParameter('contactLimit', i) as number;
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts`,
+							qs: { limit },
+							json: true,
+						});
+						if (Array.isArray(response)) {
+							for (const item of response) {
+								returnData.push({ json: item as IDataObject });
+							}
+						} else {
+							returnData.push({ json: response as IDataObject });
+						}
+					}
+
+					else if (operation === 'get') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts/${contactId}`,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'create') {
+						const email = this.getNodeParameter('contactEmail', i) as string;
+						const name = this.getNodeParameter('contactName', i) as string;
+						const additionalFields = this.getNodeParameter('contactAdditionalFields', i, {}) as IDataObject;
+						const body: Record<string, unknown> = { email, name, ...additionalFields };
+
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts`,
+							body,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'update') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						const updateFields = this.getNodeParameter('contactUpdateFields', i, {}) as IDataObject;
+						const response = await this.helpers.httpRequest({
+							method: 'PATCH',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts/${contactId}`,
+							body: updateFields,
+							json: true,
+						});
+						returnData.push({ json: response as IDataObject });
+					}
+
+					else if (operation === 'delete') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						await this.helpers.httpRequest({
+							method: 'DELETE',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts/${contactId}`,
+							json: true,
+						});
+						returnData.push({ json: { success: true, contactId } });
+					}
+
+					else if (operation === 'getDocuments') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						const limit = this.getNodeParameter('contactLimit', i) as number;
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+headers: authHeaders,
+							url: `${baseUrl}/v2/contacts/${contactId}/documents`,
+							qs: { limit },
+							json: true,
+						});
+						if (Array.isArray(response)) {
+							for (const item of response) {
+								returnData.push({ json: item as IDataObject });
+							}
+						} else {
+							returnData.push({ json: response as IDataObject });
+						}
 					}
 				}
 			} catch (error) {
