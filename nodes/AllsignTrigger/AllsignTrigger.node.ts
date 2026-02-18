@@ -29,6 +29,23 @@ export class AllsignTrigger implements INodeType {
                 required: true,
             },
         ],
+        codex: {
+            alias: [
+                'Firma',
+                'Documento',
+                'Contrato',
+                'Signature',
+                'PDF',
+                'Sign',
+                'Biometrica',
+                'NOM-151',
+                'FEA',
+                'eIDAS',
+                'Signer',
+                'Firmante',
+                'Webhook',
+            ],
+        },
         webhooks: [
             {
                 name: 'default',
