@@ -243,7 +243,7 @@ describe('AllSign Node', () => {
 	// Document: Update Signature Validations
 	// ----------------------------------------------------------
 	describe('Document: Update Signature Validations', () => {
-		it('should send all 5 signature types to the API', async () => {
+		it('should send all 7 signature types to the API', async () => {
 			mockHttpRequest.mockResolvedValueOnce({ success: true });
 
 			const fn = getMockExecuteFunctions({
@@ -255,6 +255,8 @@ describe('AllSign Node', () => {
 				nom151: true,
 				eidas: false,
 				firmaBiometrica: true,
+				aiVerification: true,
+				confirmNameToFinish: false,
 			});
 
 			const result = await node.execute.call(fn);
@@ -268,6 +270,8 @@ describe('AllSign Node', () => {
 						nom151: true,
 						eIDAS: false,
 						firmaBiometrica: true,
+						aiVerification: true,
+						confirmNameToFinish: false,
 					},
 				},
 			}));
@@ -286,6 +290,8 @@ describe('AllSign Node', () => {
 				nom151: false,
 				eidas: false,
 				firmaBiometrica: false,
+				aiVerification: false,
+				confirmNameToFinish: false,
 			});
 
 			await node.execute.call(fn);
@@ -295,6 +301,8 @@ describe('AllSign Node', () => {
 			expect(callBody.signatureValidations.nom151).toBe(false);
 			expect(callBody.signatureValidations.eIDAS).toBe(false);
 			expect(callBody.signatureValidations.firmaBiometrica).toBe(false);
+			expect(callBody.signatureValidations.aiVerification).toBe(false);
+			expect(callBody.signatureValidations.confirmNameToFinish).toBe(false);
 		});
 	});
 

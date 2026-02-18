@@ -9,6 +9,10 @@ export class AllSignApi implements ICredentialType {
     name = 'allSignApi';
     displayName = 'AllSign API';
     documentationUrl = 'https://docs.allsign.io';
+    icon = {
+        light: 'file:allsign.svg',
+        dark: 'file:allsign.svg',
+    } as const;
     properties: INodeProperties[] = [
         {
             displayName: 'API Key',

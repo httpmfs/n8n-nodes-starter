@@ -18,7 +18,7 @@ export class Allsign implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			'Firma electrónica, contratos, documentos PDF. Create, sign, and manage documents with AllSign.',
+			'Create, sign, and manage documents with AllSign e-signature platform. Firma electrónica, NOM-151, FEA, eIDAS.',
 		defaults: {
 			name: 'AllSign',
 		},
@@ -59,26 +59,32 @@ export class Allsign implements INodeType {
 					{
 						name: 'Contact',
 						value: 'contact',
+						description: 'Manage your signing contacts',
 					},
 					{
 						name: 'Document',
 						value: 'document',
+						description: 'Create, send, and manage documents for signing',
 					},
 					{
 						name: 'Folder',
 						value: 'folder',
+						description: 'Organize documents into folders',
 					},
 					{
 						name: 'Signature',
 						value: 'signature',
+						description: 'Manage signatures on documents',
 					},
 					{
 						name: 'Signature Field',
 						value: 'signatureField',
+						description: 'Place and manage signature fields on PDF pages',
 					},
 					{
 						name: 'Signer',
 						value: 'signer',
+						description: 'Add signers to documents',
 					},
 				],
 			},
@@ -134,14 +140,14 @@ export class Allsign implements INodeType {
 					{
 						name: 'Invite',
 						value: 'invite',
-						description: 'Invite a participant to sign a document (V2)',
-						action: 'Invite a participant',
+						description: 'Invite a participant to sign a document',
+						action: 'Invite a participant to sign',
 					},
 					{
 						name: 'Invite Bulk',
 						value: 'inviteBulk',
-						description: 'Invite multiple participants at once (V2)',
-						action: 'Invite multiple participants',
+						description: 'Invite multiple participants to sign at once',
+						action: 'Invite multiple participants to sign',
 					},
 					{
 						name: 'Send',
@@ -280,9 +286,9 @@ export class Allsign implements INodeType {
 							'download',
 							'send',
 							'void',
-                                                        'update',
-                                                        'invite',
-                                                        'inviteBulk',
+						'update',
+						'invite',
+						'inviteBulk',
 							'updateSignatureValidations',
 							'updateSignatureState',
 						],
@@ -515,6 +521,22 @@ export class Allsign implements INodeType {
 				type: 'boolean',
 				default: false,
 				description: 'Whether to require biometric signature (Selfie/proof of life)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'AI Verification (SynthID)',
+				name: 'aiVerification',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to enable AI-powered verification (ID authenticity, liveness detection, SynthID)',
+				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
+			},
+			{
+				displayName: 'Confirm Name to Finish',
+				name: 'confirmNameToFinish',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require the signer to type their full name to complete the signing process',
 				displayOptions: { show: { resource: ['document'], operation: ['updateSignatureValidations'] } },
 			},
 
@@ -1141,10 +1163,12 @@ headers: authHeaders,
 						const nom151 = this.getNodeParameter('nom151', i) as boolean;
 						const eidas = this.getNodeParameter('eidas', i) as boolean;
 						const firmaBiometrica = this.getNodeParameter('firmaBiometrica', i) as boolean;
+						const aiVerification = this.getNodeParameter('aiVerification', i) as boolean;
+						const confirmNameToFinish = this.getNodeParameter('confirmNameToFinish', i) as boolean;
 
 						const response = await this.helpers.httpRequest({
 							method: 'PATCH',
-headers: authHeaders,
+							headers: authHeaders,
 							url: `${baseUrl}/api/documents/${documentId}/signature-validations`,
 							body: {
 								signatureValidations: {
@@ -1153,6 +1177,8 @@ headers: authHeaders,
 									nom151,
 									eIDAS: eidas,
 									firmaBiometrica,
+									aiVerification,
+									confirmNameToFinish,
 								},
 							},
 							json: true,

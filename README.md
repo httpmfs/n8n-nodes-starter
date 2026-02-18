@@ -1,122 +1,145 @@
 # n8n-nodes-allsign
 
-Nodo comunitario de [n8n](https://n8n.io) para integración con la plataforma **[AllSign](https://allsign.io)**.
+![AllSign](https://img.shields.io/badge/AllSign-E--Signature-6C5CE7?style=for-the-badge)
+![n8n](https://img.shields.io/badge/n8n-Community%20Node-FF6D5A?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-Permite firmar y gestionar documentos desde workflows de n8n utilizando la API de AllSign.
+[n8n](https://n8n.io) community node for the **[AllSign](https://allsign.io)** e-signature platform.
 
----
+Create, sign, and manage documents from n8n workflows using the AllSign API v2.
 
-## 📂 Estructura del proyecto
-
-```
-n8n-nodes-allsign/
-├── credentials/          # Definiciones de credenciales (API Key, OAuth2)
-├── nodes/
-│   ├── Allsign/          # ← Nodo principal de AllSign
-│   ├── Example/          # Nodo de ejemplo (referencia)
-│   └── GithubIssues/     # Nodo de ejemplo declarativo (referencia)
-├── icons/                # Íconos del nodo
-├── src/                  # Código fuente auxiliar
-├── dist/                 # Código compilado (generado)
-├── package.json
-└── tsconfig.json
-```
+> **🇲🇽 Español:** Nodo comunitario de n8n para firma electrónica con AllSign. Permite crear, firmar y gestionar documentos, contactos y carpetas desde workflows de n8n.
 
 ---
 
-## 🚀 Cómo correr el proyecto
+## ✨ Features / Características
 
-### Prerrequisitos
+### 📄 Document (6 resources, 31 operations)
 
-| Herramienta | Versión mínima | Instalación |
-|---|---|---|
-| **Node.js** | v22+ | [nvm](https://github.com/nvm-sh/nvm) (recomendado) |
-| **npm** | Incluido con Node.js | — |
-| **git** | Cualquiera reciente | [git-scm.com](https://git-scm.com/downloads) |
+| Resource            | Operations                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Document**        | Create, Get, Get Many, Download, Send, Update, Delete, Void, Invite, Invite Bulk, Get Stats, Update Signature Validations, Update Signature State |
+| **Signer**          | Add                                                                                                                                               |
+| **Signature Field** | Add, Add Multiple, Update, Delete                                                                                                                 |
+| **Signature**       | Delete                                                                                                                                            |
+| **Folder**          | Create, Get, Get Many, Update, Delete, Get Documents                                                                                              |
+| **Contact**         | Create, Get, Get Many, Update, Delete, Get Documents                                                                                              |
 
-> [!NOTE]
-> No necesitas instalar n8n de forma global. El CLI `@n8n/node-cli` (incluido como dependencia de desarrollo) trae n8n integrado.
+### 🔔 Triggers (4 events)
 
-### 1. Clonar el repositorio
+| Event                | Description                          |
+| -------------------- | ------------------------------------ |
+| `document.completed` | All signers have signed the document |
+| `document.sent`      | Document was sent for signing        |
+| `document.signed`    | A signer has signed the document     |
+| `document.voided`    | Document was voided/cancelled        |
+
+### 🔐 Signature Types
+
+- **Autógrafa** — Handwritten digital signature
+- **FEA** — Firma Electrónica Avanzada (Mexico)
+- **NOM-151** — NOM-151-SCFI certification (Mexico)
+- **eIDAS** — EU electronic signature standard
+- **Biométrica** — Biometric signature (selfie/proof of life)
+- **SynthID (AI Verification)** — Verifies signer is not AI-generated
+- **Confirm Name to Finish** — Requires signer to type their full name
+
+---
+
+## 🚀 Getting Started / Cómo empezar
+
+### Prerequisites / Prerrequisitos
+
+| Tool        | Version  | Install                              |
+| ----------- | -------- | ------------------------------------ |
+| **Node.js** | v22+     | [nvm](https://github.com/nvm-sh/nvm) |
+| **npm**     | Included | —                                    |
+
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/allsign/n8n-nodes-allsign.git
 cd n8n-nodes-allsign
-```
-
-### 2. Instalar dependencias
-
-```bash
 npm install
 ```
 
-### 3. Iniciar en modo desarrollo
+### 2. Development Mode
 
 ```bash
 npm run dev
 ```
 
-Esto ejecuta `n8n-node dev`, que:
+This starts n8n with the AllSign nodes loaded, hot reload enabled, and opens the editor at **[http://localhost:5678](http://localhost:5678)**.
 
-- ✅ Compila el código TypeScript automáticamente
-- ✅ Inicia n8n con los nodos cargados
-- ✅ Vigila cambios y recompila en caliente (hot reload)
-- ✅ Abre n8n en el navegador en **[http://localhost:5678](http://localhost:5678)**
+### 3. Configure Credentials
 
-> Ya puedes buscar el nodo **AllSign** dentro de n8n y probarlo en un workflow.
+1. In n8n, go to **Credentials → Create Credential → AllSign API**
+2. Enter your **API Key** (get one from [dashboard.allsign.io](https://dashboard.allsign.io))
+3. Set the **Base URL** (default: `https://api.allsign.io`)
+4. Click **Save** — the connection test will validate your key
 
-### 4. Compilar para producción
+### 4. Build for Production
 
 ```bash
 npm run build
 ```
 
-Genera el código JavaScript listo para publicar en la carpeta `dist/`.
-
 ---
 
-## 📜 Scripts disponibles
+## 📂 Project Structure
 
-| Comando               | Descripción                                                          |
-|-----------------------|----------------------------------------------------------------------|
-| `npm run dev`         | Inicia n8n con los nodos cargados y hot reload                       |
-| `npm run build`       | Compila TypeScript a JavaScript (produce `dist/`)                    |
-| `npm run build:watch` | Compila en modo watch (recompila al detectar cambios)                |
-| `npm run lint`        | Revisa errores de código y estilo                                    |
-| `npm run lint:fix`    | Corrige automáticamente errores de lint                              |
-| `npm run release`     | Crea una nueva versión (release)                                     |
-
----
-
-## 🐛 Solución de problemas
-
-### El nodo no aparece en n8n
-
-1. Verifica que ejecutaste `npm install`
-2. Asegúrate de que el nodo esté registrado en `package.json` → `n8n.nodes`
-3. Reinicia el servidor de desarrollo con `npm run dev`
-4. Revisa la consola por errores
-
-### Errores de TypeScript
-
-- Asegúrate de usar **Node.js v22** o superior
-- Ejecuta `npm install` para obtener todas las definiciones de tipo
-
-### Errores de lint
-
-```bash
-npm run lint:fix
+```
+n8n-nodes-allsign/
+├── credentials/
+│   └── AllSignApi.credentials.ts    # API Key + Base URL credential
+├── nodes/
+│   ├── Allsign/
+│   │   ├── Allsign.node.ts          # Main node (31 operations)
+│   │   ├── Allsign.node.json        # Codex metadata & SEO
+│   │   ├── Allsign.node.test.ts     # Unit tests
+│   │   └── allsign.svg              # Node icon
+│   └── AllsignTrigger/
+│       ├── AllsignTrigger.node.ts    # Webhook trigger (4 events)
+│       ├── AllsignTrigger.node.json  # Trigger codex metadata
+│       └── allsign.svg              # Trigger icon
+├── package.json
+├── tsconfig.json
+└── jest.config.js
 ```
 
 ---
 
-## 📚 Recursos
+## 📜 Scripts
 
-- [Documentación de creación de nodos n8n](https://docs.n8n.io/integrations/creating-nodes/)
-- [Documentación del CLI @n8n/node-cli](https://www.npmjs.com/package/@n8n/node-cli)
-- [Foro de la comunidad n8n](https://community.n8n.io/)
-- [AllSign](https://allsign.io)
+| Command               | Description                  |
+| --------------------- | ---------------------------- |
+| `npm run dev`         | Start n8n with hot reload    |
+| `npm run build`       | Compile TypeScript → `dist/` |
+| `npm run build:watch` | Compile in watch mode        |
+| `npm run test`        | Run unit tests               |
+| `npm run lint`        | Check code style             |
+| `npm run lint:fix`    | Auto-fix lint issues         |
 
-## 📄 Licencia
+---
+
+## 🐛 Troubleshooting
+
+| Problem                      | Solution                                   |
+| ---------------------------- | ------------------------------------------ |
+| Node doesn't appear in n8n   | Run `npm install` then `npm run dev`       |
+| TypeScript errors            | Ensure Node.js v22+, run `npm install`     |
+| Connection test fails        | Verify API Key and Base URL in credentials |
+| "Service refused connection" | Check the Base URL matches your backend    |
+
+---
+
+## 📚 Resources / Recursos
+
+- [AllSign Platform](https://allsign.io)
+- [AllSign API Docs](https://docs.allsign.io)
+- [n8n Node Development Guide](https://docs.n8n.io/integrations/creating-nodes/)
+- [n8n Community Forum](https://community.n8n.io/)
+
+## 📄 License / Licencia
 
 [MIT](LICENSE.md)

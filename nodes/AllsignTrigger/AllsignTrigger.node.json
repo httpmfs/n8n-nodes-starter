@@ -1,7 +1,7 @@
 {
   "name": "allsignTrigger",
   "displayName": "AllSign Trigger",
-  "description": "Starts a workflow when an AllSign event occurs. Webhook de firma electrónica.",
+  "description": "Starts a workflow when an AllSign event occurs. Receive webhooks for document signing events.",
   "node": "n8n-nodes-allsign.allsignTrigger",
   "nodeVersion": "1.0",
   "codexVersion": "1.0",
@@ -23,7 +23,14 @@
     "firmado",
     "evento",
     "notificacion",
-    "allsign"
+    "allsign",
+    "event",
+    "notification",
+    "completed",
+    "voided",
+    "document signed",
+    "e-signature",
+    "trigger"
   ],
   "resources": {
     "primaryDocumentation": [
