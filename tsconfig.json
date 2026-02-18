@@ -33,5 +33,9 @@
 		"nodes/**/*",
 		"nodes/**/*.json",
 		"package.json"
+	],
+	"exclude": [
+		"**/*.test.ts",
+		"**/*.spec.ts"
 	]
 }
