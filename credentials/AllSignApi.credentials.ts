@@ -20,21 +20,12 @@ export class AllSignApi implements ICredentialType {
             description: 'Your AllSign API Key. Visit your <a href="https://dashboard.allsign.io/developers/api-keys">AllSign Dashboard</a> to generate a key.',
         },
         {
-            displayName: 'Environment',
-            name: 'environment',
-            type: 'options',
-            default: 'production',
-            options: [
-                {
-                    name: 'Production',
-                    value: 'production',
-                },
-                {
-                    name: 'Sandbox',
-                    value: 'sandbox',
-                },
-            ],
-            description: 'Select the AllSign environment to use',
+            displayName: 'Base URL',
+            name: 'baseUrl',
+            type: 'string',
+            default: 'https://api.allsign.io',
+            placeholder: 'https://api.allsign.io',
+            description: 'AllSign API base URL. Use https://api.allsign.io for production or your custom development URL.',
         },
     ];
 
@@ -49,7 +40,7 @@ export class AllSignApi implements ICredentialType {
 
     test: ICredentialTestRequest = {
         request: {
-            baseURL: '={{$credentials.environment === "sandbox" ? "https://api.sandbox.allsign.io" : "https://api.allsign.io"}}',
+            baseURL: '={{$credentials.baseUrl || "https://api.allsign.io"}}',
             url: '/v2/test/security',
             method: 'GET',
         },
