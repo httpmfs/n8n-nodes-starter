@@ -1,7 +1,7 @@
 {
 	"name": "n8n-nodes-allsign",
 	"version": "1.0.0",
-	"description": "n8n community node for AllSign - Electronic signature, document management. Firma electrónica, contratos, documentos.",
+	"description": "n8n community node for AllSign - Electronic signature, document management, biometric signing. Firma electrónica, contratos, documentos, NOM-151, FEA, eIDAS, biométrica, firmantes.",
 	"license": "MIT",
 	"homepage": "https://allsign.io",
 	"keywords": [
@@ -15,7 +15,18 @@
 		"documento",
 		"contrato",
 		"pdf",
-		"contract"
+		"contract",
+		"biometric",
+		"biometrica",
+		"nom-151",
+		"fea",
+		"eidas",
+		"firmante",
+		"signer",
+		"autografa",
+		"firma-electronica",
+		"webhook",
+		"legal"
 	],
 	"author": {
 		"name": "AllSign",
@@ -31,6 +42,7 @@
 		"dev": "n8n-node dev",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
+		"test": "jest",
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease"
 	},
@@ -50,10 +62,13 @@
 	},
 	"devDependencies": {
 		"@n8n/node-cli": "*",
+		"@types/jest": "^30.0.0",
 		"@types/node": "^25.2.2",
 		"eslint": "9.32.0",
+		"jest": "^30.2.0",
 		"prettier": "3.6.2",
 		"release-it": "^19.0.4",
+		"ts-jest": "^29.4.6",
 		"typescript": "5.9.2"
 	},
 	"peerDependencies": {
