@@ -25,7 +25,7 @@
 		"signer",
 		"autografa",
 		"firma-electronica",
-		"webhook",
+
 		"legal"
 	],
 	"author": {
@@ -56,8 +56,7 @@
 			"dist/credentials/AllSignApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/Allsign/Allsign.node.js",
-			"dist/nodes/AllsignTrigger/AllsignTrigger.node.js"
+			"dist/nodes/Allsign/Allsign.node.js"
 		]
 	},
 	"devDependencies": {
