@@ -38,7 +38,7 @@ const getMockExecuteFunctions = (params: Record<string, unknown>): IExecuteFunct
 // ============================================================
 // Tests
 // ============================================================
-describe('AllSign Node (MVP)', () => {
+describe('AllSign Node', () => {
 	const node = new Allsign();
 
 	beforeEach(() => {
@@ -62,12 +62,12 @@ describe('AllSign Node (MVP)', () => {
 			expect(resourceOptions).toEqual(['document']);
 		});
 
-		it('should define only create and send operations', () => {
+		it('should define createAndSend operation', () => {
 			const opProp = node.description.properties.find(
 				(p) => p.name === 'operation' && (p.displayOptions?.show?.resource as string[])?.includes('document'),
 			);
 			const opValues = (opProp as any).options.map((o: any) => o.value);
-			expect(opValues).toEqual(['create', 'send']);
+			expect(opValues).toContain('createAndSend');
 		});
 
 		it('should have codex aliases for discoverability', () => {
@@ -87,146 +87,376 @@ describe('AllSign Node (MVP)', () => {
 	});
 
 	// ----------------------------------------------------------
-	// Document: Create (URL)
+	// Autógrafa Property
 	// ----------------------------------------------------------
-	describe('Document: Create (URL)', () => {
-		it('should call POST /v2/documents with correct body', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ document_id: 'doc-123' });
+	describe('Autógrafa Property', () => {
+		it('should be a boolean toggle', () => {
+			const autografaProp = node.description.properties.find(
+				(p) => p.name === 'verifyAutografa',
+			);
+			expect(autografaProp).toBeDefined();
+			expect(autografaProp?.type).toBe('boolean');
+			expect(autografaProp?.default).toBe(false);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Verification Properties
+	// ----------------------------------------------------------
+	describe('Verification Properties', () => {
+		it('should have all top-level verification toggles', () => {
+			const verificationNames = ['verifyFea', 'verifyNom151', 'verifyVideo', 'verifyConfirmName', 'verifyIdentity'];
+			for (const name of verificationNames) {
+				const prop = node.description.properties.find((p) => p.name === name);
+				expect(prop).toBeDefined();
+				expect(prop?.type).toBe('boolean');
+			}
+		});
+
+		it('should show ID scan only when identity verification is enabled', () => {
+			const idScanProp = node.description.properties.find((p) => p.name === 'verifyIdScan');
+			expect(idScanProp).toBeDefined();
+			expect(idScanProp?.displayOptions?.show?.verifyIdentity).toEqual([true]);
+		});
+
+		it('should show biometric selfie only when identity verification is enabled', () => {
+			const selfieProp = node.description.properties.find((p) => p.name === 'verifyBiometricSelfie');
+			expect(selfieProp).toBeDefined();
+			expect(selfieProp?.displayOptions?.show?.verifyIdentity).toEqual([true]);
+		});
+
+		it('should show SynthID only when biometric selfie is enabled', () => {
+			const synthProp = node.description.properties.find((p) => p.name === 'verifySynthId');
+			expect(synthProp).toBeDefined();
+			expect(synthProp?.displayOptions?.show?.verifyIdentity).toEqual([true]);
+			expect(synthProp?.displayOptions?.show?.verifyBiometricSelfie).toEqual([true]);
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Create & Send (URL) — V2 Schema
+	// ----------------------------------------------------------
+	describe('Create & Send (URL)', () => {
+		it('should download the file, convert to base64, and POST with V2 document schema', async () => {
+			// First call: download PDF from URL → returns Buffer
+			const pdfBuffer = Buffer.from('fake-pdf-content');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			// Second call: POST to /v2/documents/ → returns response
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-123', name: 'Test Contract' });
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'create',
+				operation: 'createAndSend',
 				documentName: 'Test Contract',
 				fileSource: 'url',
-				fileUrl: 'https://example.com/doc.pdf',
-				templateId: 'tpl-1',
+				fileUrl: 'https://example.com/contract.pdf',
+				'signers.signerValues': [{ name: 'John', email: 'john@test.com' }],
+				verifyAutografa: true,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 
 			const result = await node.execute.call(fn);
-			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
-				method: 'POST',
-				url: 'https://api.allsign.io/v2/documents',
-				body: expect.objectContaining({
-					name: 'Test Contract',
-					file_url: 'https://example.com/doc.pdf',
-					template_id: 'tpl-1',
-				}),
+
+			// Should have made 2 HTTP calls
+			expect(mockHttpRequest).toHaveBeenCalledTimes(2);
+
+			// First call: download the PDF
+			expect(mockHttpRequest).toHaveBeenNthCalledWith(1, expect.objectContaining({
+				method: 'GET',
+				url: 'https://example.com/contract.pdf',
+				encoding: 'arraybuffer',
 			}));
-			expect(result[0][0].json).toEqual({ document_id: 'doc-123' });
+
+			// Second call: POST to V2 documents endpoint
+			const postCall = mockHttpRequest.mock.calls[1][0];
+			expect(postCall.method).toBe('POST');
+			expect(postCall.url).toBe('https://api.allsign.io/v2/documents/');
+			expect(postCall.headers).toEqual({ Authorization: 'Bearer allsign_live_sk_test123' });
+
+			// Verify V2 body structure
+			const body = postCall.body;
+			expect(body.document).toEqual({
+				base64Content: pdfBuffer.toString('base64'),
+				name: 'contract.pdf',
+			});
+			expect(body.participants).toEqual([{ name: 'John', email: 'john@test.com' }]);
+			expect(body.signatureValidation).toEqual(expect.objectContaining({
+				autografa: true,
+				FEA: false,
+				nom151: false,
+			}));
+			expect(body.config).toEqual({
+				sendInvitations: true,
+				sendByEmail: true,
+				startAtStep: 3,
+			});
+
+			expect(result[0][0].json).toEqual({ id: 'doc-123', name: 'Test Contract' });
 		});
 
-		it('should not include template_id when empty', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ document_id: 'doc-456' });
+		it('should set correct signatureValidation for simple type', async () => {
+			const pdfBuffer = Buffer.from('simple-pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-456' });
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'create',
+				operation: 'createAndSend',
 				documentName: 'Simple Doc',
 				fileSource: 'url',
 				fileUrl: 'https://example.com/simple.pdf',
-				templateId: '',
+				'signers.signerValues': [{ name: 'Jane', email: 'jane@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 
 			await node.execute.call(fn);
-			const callBody = mockHttpRequest.mock.calls[0][0].body;
-			expect(callBody).not.toHaveProperty('template_id');
+			const postBody = mockHttpRequest.mock.calls[1][0].body;
+
+
+			// signatureValidation.autografa should be false for 'simple' type
+			expect(postBody.signatureValidation.autografa).toBe(false);
+		});
+
+		it('should set config to no invitations when no signers provided', async () => {
+			const pdfBuffer = Buffer.from('draft-pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-draft' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Draft Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/draft.pdf',
+				'signers.signerValues': [],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+
+			await node.execute.call(fn);
+			const postBody = mockHttpRequest.mock.calls[1][0].body;
+			expect(postBody.config).toEqual({
+				sendInvitations: false,
+				sendByEmail: false,
+				startAtStep: 1,
+			});
+			expect(postBody.participants).toEqual([]);
 		});
 	});
 
 	// ----------------------------------------------------------
-	// Document: Create (Binary)
+	// Create & Send (Binary) — V2 Schema
 	// ----------------------------------------------------------
-	describe('Document: Create (Binary)', () => {
-		it('should call POST /v2/documents with base64 data', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ document_id: 'doc-bin' });
+	describe('Create & Send (Binary)', () => {
+		it('should use binary data and POST with V2 document schema', async () => {
+			const binaryBuffer = Buffer.from('binary-pdf-content');
 			mockAssertBinaryData.mockReturnValueOnce({ fileName: 'contract.pdf' });
-			mockGetBinaryDataBuffer.mockResolvedValueOnce(Buffer.from('pdf-content'));
+			mockGetBinaryDataBuffer.mockResolvedValueOnce(binaryBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-bin', name: 'Binary Upload' });
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'create',
+				operation: 'createAndSend',
 				documentName: 'Binary Upload',
 				fileSource: 'binary',
 				binaryProperty: 'data',
-				templateId: '',
+				'signers.signerValues': [{ name: 'Bob', email: 'bob@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 
 			const result = await node.execute.call(fn);
-			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
-				method: 'POST',
-				url: 'https://api.allsign.io/v2/documents',
-				body: expect.objectContaining({
-					name: 'Binary Upload',
-					file_data: Buffer.from('pdf-content').toString('base64'),
-					file_name: 'contract.pdf',
-				}),
-			}));
-			expect(result[0][0].json).toEqual({ document_id: 'doc-bin' });
+
+			// Should only make 1 HTTP call (no download needed)
+			expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+
+			const postCall = mockHttpRequest.mock.calls[0][0];
+			expect(postCall.method).toBe('POST');
+			expect(postCall.url).toBe('https://api.allsign.io/v2/documents/');
+
+			// Verify V2 body structure
+			const body = postCall.body;
+			expect(body.document).toEqual({
+				base64Content: binaryBuffer.toString('base64'),
+				name: 'contract.pdf',
+			});
+			expect(body.participants).toEqual([{ name: 'Bob', email: 'bob@test.com' }]);
+
+			expect(result[0][0].json).toEqual({ id: 'doc-bin', name: 'Binary Upload' });
+		});
+
+		it('should use documentName.pdf when binary has no fileName', async () => {
+			const binaryBuffer = Buffer.from('content');
+			mockAssertBinaryData.mockReturnValueOnce({ fileName: undefined });
+			mockGetBinaryDataBuffer.mockResolvedValueOnce(binaryBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-noname' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Unnamed Doc',
+				fileSource: 'binary',
+				binaryProperty: 'data',
+				'signers.signerValues': [],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+
+			await node.execute.call(fn);
+			const body = mockHttpRequest.mock.calls[0][0].body;
+			expect(body.document.name).toBe('document.pdf');
 		});
 	});
 
 	// ----------------------------------------------------------
-	// Document: Send
+	// Signature Validation (V2 Schema)
 	// ----------------------------------------------------------
-	describe('Document: Send', () => {
-		it('should call POST /v2/documents/{id}/send with signers', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ success: true });
+	describe('Signature Validation', () => {
+		it('should set signatureValidation fields based on toggles', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-ver' });
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'send',
-				documentId: 'doc-123',
-				'signers.signerValues': [{ name: 'John', email: 'john@test.com' }],
-				message: 'Please sign',
-			});
-
-			const result = await node.execute.call(fn);
-			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
-				method: 'POST',
-				url: 'https://api.allsign.io/v2/documents/doc-123/send',
-				body: expect.objectContaining({
-					signers: [{ name: 'John', email: 'john@test.com' }],
-					message: 'Please sign',
-				}),
-			}));
-			expect(result[0][0].json).toEqual({ success: true });
-		});
-
-		it('should send multiple signers', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ success: true, sent: 2 });
-
-			const fn = getMockExecuteFunctions({
-				resource: 'document',
-				operation: 'send',
-				documentId: 'doc-456',
-				'signers.signerValues': [
-					{ name: 'Alice', email: 'alice@test.com' },
-					{ name: 'Bob', email: 'bob@test.com' },
-				],
-				message: '',
-			});
-
-			const result = await node.execute.call(fn);
-			const callBody = mockHttpRequest.mock.calls[0][0].body;
-			expect(callBody.signers).toHaveLength(2);
-			expect(callBody).not.toHaveProperty('message');
-			expect(result[0][0].json).toHaveProperty('sent', 2);
-		});
-
-		it('should not include message when empty', async () => {
-			mockHttpRequest.mockResolvedValueOnce({ success: true });
-
-			const fn = getMockExecuteFunctions({
-				resource: 'document',
-				operation: 'send',
-				documentId: 'doc-789',
+				operation: 'createAndSend',
+				documentName: 'Verified Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				message: '',
+				verifyAutografa: true,
+				verifyFea: true,
+				verifyNom151: true,
+				verifyVideo: false,
+				verifyConfirmName: true,
+				verifyIdentity: false,
 			});
 
 			await node.execute.call(fn);
-			const callBody = mockHttpRequest.mock.calls[0][0].body;
-			expect(callBody).not.toHaveProperty('message');
+			const body = mockHttpRequest.mock.calls[1][0].body;
+			expect(body.signatureValidation).toEqual({
+				autografa: true,
+				FEA: true,
+				nom151: true,
+				biometric_signature: false,
+				confirm_name_to_finish: true,
+			});
+		});
+
+		it('should set ai_verification when identity sub-options are enabled', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-id' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Identity Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
+				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: true,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: true,
+				verifyIdScan: true,
+				verifyBiometricSelfie: true,
+				verifySynthId: true,
+			});
+
+			await node.execute.call(fn);
+			const body = mockHttpRequest.mock.calls[1][0].body;
+			expect(body.signatureValidation.ai_verification).toBe(true);
+		});
+
+		it('should not include ai_verification when identity is disabled', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-noid' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'No Identity Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
+				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+
+			await node.execute.call(fn);
+			const body = mockHttpRequest.mock.calls[1][0].body;
+			expect(body.signatureValidation).not.toHaveProperty('ai_verification');
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Multiple Signers
+	// ----------------------------------------------------------
+	describe('Multiple Signers', () => {
+		it('should send multiple participants in one request', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-multi', name: 'Multi-Signer' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Multi-Signer Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
+				'signers.signerValues': [
+					{ name: 'Alice', email: 'alice@test.com' },
+					{ name: 'Bob', email: 'bob@test.com' },
+					{ name: 'Charlie', email: 'charlie@test.com' },
+				],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+
+			const result = await node.execute.call(fn);
+			const body = mockHttpRequest.mock.calls[1][0].body;
+			expect(body.participants).toHaveLength(3);
+			expect(body.participants).toEqual([
+				{ name: 'Alice', email: 'alice@test.com' },
+				{ name: 'Bob', email: 'bob@test.com' },
+				{ name: 'Charlie', email: 'charlie@test.com' },
+			]);
+			// With participants, should send invitations
+			expect(body.config.sendInvitations).toBe(true);
+			expect(body.config.startAtStep).toBe(3);
 		});
 	});
 
@@ -235,19 +465,91 @@ describe('AllSign Node (MVP)', () => {
 	// ----------------------------------------------------------
 	describe('Auth Headers', () => {
 		it('should include Authorization Bearer header in all requests', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
 			mockHttpRequest.mockResolvedValueOnce({ success: true });
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'send',
-				documentId: 'doc-1',
+				operation: 'createAndSend',
+				documentName: 'Auth Test',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 
 			await node.execute.call(fn);
-			expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
-				headers: { Authorization: 'Bearer allsign_live_sk_test123' },
-			}));
+			// The POST call (2nd) should have Bearer auth
+			expect(mockHttpRequest.mock.calls[1][0].headers).toEqual({
+				Authorization: 'Bearer allsign_live_sk_test123',
+			});
+		});
+	});
+
+	// ----------------------------------------------------------
+	// Base URL Handling
+	// ----------------------------------------------------------
+	describe('Base URL Handling', () => {
+		it('should strip trailing slashes from base URL', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ success: true });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Slash Test',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
+				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+			(fn as any).getCredentials = async () => ({
+				apiKey: 'allsign_live_sk_test123',
+				baseUrl: 'https://api.allsign.io/',
+			});
+
+			await node.execute.call(fn);
+			expect(mockHttpRequest.mock.calls[1][0].url).toBe('https://api.allsign.io/v2/documents/');
+		});
+
+		it('should use custom base URL for dev environments', async () => {
+			const pdfBuffer = Buffer.from('pdf');
+			mockHttpRequest.mockResolvedValueOnce(pdfBuffer);
+			mockHttpRequest.mockResolvedValueOnce({ id: 'doc-dev' });
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Dev Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
+				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+			(fn as any).getCredentials = async () => ({
+				apiKey: 'allsign_trial_sk_dev456',
+				baseUrl: 'http://localhost:8000',
+			});
+
+			await node.execute.call(fn);
+			expect(mockHttpRequest.mock.calls[1][0].url).toBe('http://localhost:8000/v2/documents/');
 		});
 	});
 
@@ -256,18 +558,49 @@ describe('AllSign Node (MVP)', () => {
 	// ----------------------------------------------------------
 	describe('Error Handling', () => {
 		it('should throw NodeOperationError on API failure', async () => {
+			// Download succeeds, POST fails
+			mockHttpRequest.mockResolvedValueOnce(Buffer.from('pdf'));
 			mockHttpRequest.mockRejectedValueOnce({
-				response: { data: { message: 'Document not found' }, status: 404 },
+				response: { data: { message: 'Insufficient credits' }, status: 402 },
 			});
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'send',
-				documentId: 'non-existent',
+				operation: 'createAndSend',
+				documentName: 'Error Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 
-			await expect(node.execute.call(fn)).rejects.toThrow('AllSign API Error: Document not found');
+			await expect(node.execute.call(fn)).rejects.toThrow('AllSign API Error: Insufficient credits');
+		});
+
+		it('should throw when file download fails', async () => {
+			mockHttpRequest.mockRejectedValueOnce(new Error('File not found'));
+
+			const fn = getMockExecuteFunctions({
+				resource: 'document',
+				operation: 'createAndSend',
+				documentName: 'Bad URL Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/nonexistent.pdf',
+				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
+			});
+
+			await expect(node.execute.call(fn)).rejects.toThrow('AllSign API Error');
 		});
 
 		it('should continue on fail when enabled', async () => {
@@ -275,9 +608,17 @@ describe('AllSign Node (MVP)', () => {
 
 			const fn = getMockExecuteFunctions({
 				resource: 'document',
-				operation: 'send',
-				documentId: 'doc-fail',
+				operation: 'createAndSend',
+				documentName: 'Fail Doc',
+				fileSource: 'url',
+				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
+				verifyAutografa: false,
+				verifyFea: false,
+				verifyNom151: false,
+				verifyVideo: false,
+				verifyConfirmName: false,
+				verifyIdentity: false,
 			});
 			(fn as any).continueOnFail = () => true;
 

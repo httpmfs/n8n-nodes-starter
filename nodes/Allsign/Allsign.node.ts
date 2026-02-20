@@ -1,9 +1,7 @@
 import type {
 	IDataObject,
 	IExecuteFunctions,
-	ILoadOptionsFunctions,
 	INodeExecutionData,
-	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
@@ -74,24 +72,22 @@ export class Allsign implements INodeType {
 						resource: ['document'],
 					},
 				},
-				default: 'create',
+				default: 'createAndSend',
 				options: [
 					{
-						name: 'Create',
-						value: 'create',
-						description: 'Create and upload a new document for signing',
-						action: 'Create a document',
-					},
-					{
-						name: 'Send',
-						value: 'send',
-						description: 'Send a document for signing (or resend reminders)',
-						action: 'Send a document for signing',
+						name: 'Create & Send',
+						value: 'createAndSend',
+						description: 'Upload a document and send it for signing in one step',
+						action: 'Create and send a document',
 					},
 				],
 			},
 
-			// ====== CREATE fields ======
+			// ====================================================
+			// CREATE & SEND fields
+			// ====================================================
+
+			// ------ Document Name ------
 			{
 				displayName: 'Document Name',
 				name: 'documentName',
@@ -103,10 +99,12 @@ export class Allsign implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['create'],
+						operation: ['createAndSend'],
 					},
 				},
 			},
+
+			// ------ File Source ------
 			{
 				displayName: 'File Source',
 				name: 'fileSource',
@@ -127,7 +125,7 @@ export class Allsign implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['create'],
+						operation: ['createAndSend'],
 					},
 				},
 			},
@@ -140,7 +138,7 @@ export class Allsign implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['create'],
+						operation: ['createAndSend'],
 						fileSource: ['binary'],
 					},
 				},
@@ -155,44 +153,15 @@ export class Allsign implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['create'],
+						operation: ['createAndSend'],
 						fileSource: ['url'],
 					},
 				},
 			},
-			{
-				displayName: 'Template Name or ID',
-				name: 'templateId',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getTemplates',
-				},
-				default: '',
-				description:
-					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['create'],
-					},
-				},
-			},
 
-			// ====== SEND fields ======
-			{
-				displayName: 'Document ID',
-				name: 'documentId',
-				type: 'string',
-				default: '',
-				required: true,
-				description: 'The ID of the document to send for signing',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['send'],
-					},
-				},
-			},
+
+
+			// ====== SIGNERS ======
 			{
 				displayName: 'Signers',
 				name: 'signers',
@@ -201,12 +170,13 @@ export class Allsign implements INodeType {
 					multipleValues: true,
 				},
 				default: {},
+				required: true,
 				placeholder: 'Add Signer',
 				description: 'People who need to sign the document',
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['send'],
+						operation: ['createAndSend'],
 					},
 				},
 				options: [
@@ -219,6 +189,7 @@ export class Allsign implements INodeType {
 								name: 'name',
 								type: 'string',
 								default: '',
+								required: true,
 								description: 'Full name of the signer',
 							},
 							{
@@ -227,60 +198,150 @@ export class Allsign implements INodeType {
 								type: 'string',
 								placeholder: 'name@email.com',
 								default: '',
+								required: true,
 								description: 'Email address of the signer',
 							},
 						],
 					},
 				],
 			},
+
+			// ====== SIGNATURE OPTIONS ======
 			{
-				displayName: 'Message',
-				name: 'message',
-				type: 'string',
-				typeOptions: {
-					rows: 3,
-				},
-				default: '',
-				placeholder: 'Please sign this document...',
-				description: 'Optional message to include in the signing invitation',
+				displayName: 'Autógrafa (Handwritten Signature)',
+				name: 'verifyAutografa',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require a handwritten-style digital signature with biometric capture',
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['send'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+
+			// ====== VERIFICATION OPTIONS ======
+			{
+				displayName: 'FEA (Advanced Electronic Signature)',
+				name: 'verifyFea',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require FEA (Firma Electrónica Avanzada) verification',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+			{
+				displayName: 'NOM-151 (Timestamping)',
+				name: 'verifyNom151',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to apply NOM-151 certified timestamping to the document',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+			{
+				displayName: 'Video Signature',
+				name: 'verifyVideo',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require a recorded video as part of the signing process',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+			{
+				displayName: 'Confirm Name',
+				name: 'verifyConfirmName',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require the signer to type their full name as confirmation',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+
+			// ====== IDENTITY VERIFICATION (parent toggle) ======
+			{
+				displayName: 'Identity Verification',
+				name: 'verifyIdentity',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require identity verification for signers',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+					},
+				},
+			},
+
+			// ------ ID Scan (child of Identity Verification) ------
+			{
+				displayName: 'ID Scan',
+				name: 'verifyIdScan',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require signers to scan their government-issued ID',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+						verifyIdentity: [true],
+					},
+				},
+			},
+
+			// ------ Biometric Selfie (child of Identity Verification) ------
+			{
+				displayName: 'Biometric Selfie',
+				name: 'verifyBiometricSelfie',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to require a biometric selfie for identity matching',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+						verifyIdentity: [true],
+					},
+				},
+			},
+
+			// ------ SynthID (child of Biometric Selfie) ------
+			{
+				displayName: 'SynthID (AI Detection)',
+				name: 'verifySynthId',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to verify the selfie was taken by a real person and not AI-generated',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['createAndSend'],
+						verifyIdentity: [true],
+						verifyBiometricSelfie: [true],
 					},
 				},
 			},
 		],
 	};
 
-	methods = {
-		loadOptions: {
-			async getTemplates(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				try {
-					const credentials = await this.getCredentials('allSignApi');
-					const baseUrl = (credentials.baseUrl as string) || 'https://api.allsign.io';
-					const apiKey = credentials.apiKey as string;
 
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/v2/templates`,
-						headers: { Authorization: `Bearer ${apiKey}` },
-						json: true,
-					});
-
-					if (Array.isArray(response)) {
-						return response.map((template: { id: string; name: string }) => ({
-							name: template.name,
-							value: template.id,
-						}));
-					}
-					return [{ name: 'No Templates Found', value: '' }];
-				} catch {
-					return [{ name: 'Could not load templates', value: '' }];
-				}
-			},
-		},
-	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
@@ -288,85 +349,106 @@ export class Allsign implements INodeType {
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const credentials = await this.getCredentials('allSignApi');
-		const baseUrl = (credentials.baseUrl as string) || 'https://api.allsign.io';
+		const baseUrl = ((credentials.baseUrl as string) || 'https://api.allsign.io').replace(/\/+$/, '');
 		const apiKey = credentials.apiKey as string;
 		const authHeaders = { Authorization: `Bearer ${apiKey}` };
 
 		for (let i = 0; i < items.length; i++) {
 			try {
 				if (resource === 'document') {
-					// ============ CREATE ============
-					if (operation === 'create') {
+					// ============ CREATE & SEND ============
+					if (operation === 'createAndSend') {
 						const documentName = this.getNodeParameter('documentName', i) as string;
 						const fileSource = this.getNodeParameter('fileSource', i) as string;
-						const templateId = this.getNodeParameter('templateId', i, '') as string;
 
-						let response;
+						const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
+							name: string;
+							email: string;
+						}>;
+						const verifyAutografa = this.getNodeParameter('verifyAutografa', i, false) as boolean;
+						const verifyFea = this.getNodeParameter('verifyFea', i, false) as boolean;
+						const verifyNom151 = this.getNodeParameter('verifyNom151', i, false) as boolean;
+						const verifyVideo = this.getNodeParameter('verifyVideo', i, false) as boolean;
+						const verifyConfirmName = this.getNodeParameter('verifyConfirmName', i, false) as boolean;
+						const verifyIdentity = this.getNodeParameter('verifyIdentity', i, false) as boolean;
+
+						// Get file as base64
+						let fileBase64: string;
+						let fileName: string;
 
 						if (fileSource === 'url') {
 							const fileUrl = this.getNodeParameter('fileUrl', i) as string;
-							const body: Record<string, string> = {
-								name: documentName,
-								file_url: fileUrl,
-							};
-							if (templateId) body.template_id = templateId;
-
-							response = await this.helpers.httpRequest({
-								method: 'POST',
-								headers: authHeaders,
-								url: `${baseUrl}/v2/documents`,
-								body,
-								json: true,
-							});
+							// Download the file and convert to base64
+							const fileBuffer = await this.helpers.httpRequest({
+								method: 'GET',
+								url: fileUrl,
+								encoding: 'arraybuffer',
+								returnFullResponse: false,
+							}) as Buffer;
+							fileBase64 = Buffer.from(fileBuffer).toString('base64');
+							// Extract filename from URL or use default
+							const urlParts = fileUrl.split('/');
+							fileName = urlParts[urlParts.length - 1] || 'document.pdf';
 						} else {
 							// Binary upload
 							const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
 							const binaryData = this.helpers.assertBinaryData(i, binaryProperty);
 							const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
-
-							const body: Record<string, string | object> = {
-								name: documentName,
-								file_data: buffer.toString('base64'),
-								file_name: binaryData.fileName || 'document.pdf',
-							};
-
-							if (templateId) {
-								body.template_id = templateId;
-							}
-
-							response = await this.helpers.httpRequest({
-								method: 'POST',
-								headers: authHeaders,
-								url: `${baseUrl}/v2/documents`,
-								body,
-								json: true,
-							});
+							fileBase64 = buffer.toString('base64');
+							fileName = binaryData.fileName || 'document.pdf';
 						}
 
-						returnData.push({ json: response as IDataObject });
-					}
-
-					// ============ SEND ============
-					else if (operation === 'send') {
-						const documentId = this.getNodeParameter('documentId', i) as string;
-						const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
-							name: string;
-							email: string;
-						}>;
-						const message = this.getNodeParameter('message', i, '') as string;
-
-						const body: Record<string, unknown> = {
-							signers: signersData,
+						// Build signatureValidation from toggle options
+						const signatureValidation: Record<string, boolean> = {
+							autografa: verifyAutografa,
+							FEA: verifyFea,
+							nom151: verifyNom151,
+							biometric_signature: verifyVideo,
+							confirm_name_to_finish: verifyConfirmName,
 						};
-						if (message) body.message = message;
+
+						if (verifyIdentity) {
+							const verifyIdScan = this.getNodeParameter('verifyIdScan', i, false) as boolean;
+							const verifyBiometricSelfie = this.getNodeParameter('verifyBiometricSelfie', i, false) as boolean;
+							if (verifyBiometricSelfie) {
+								const verifySynthId = this.getNodeParameter('verifySynthId', i, false) as boolean;
+								signatureValidation.ai_verification = verifySynthId;
+							}
+							// ID scan and biometric selfie are handled by the platform
+							if (verifyIdScan) signatureValidation.ai_verification = true;
+						}
+
+						// Build participants from signers
+						const participants = signersData.map((signer) => ({
+							email: signer.email,
+							name: signer.name,
+						}));
+
+						// Build the body matching DocumentCreateRequestV2 schema
+						const body: Record<string, unknown> = {
+							document: {
+								base64Content: fileBase64,
+								name: fileName.endsWith('.pdf') ? fileName : `${documentName}.pdf`,
+							},
+							participants,
+							signatureValidation,
+							config: {
+								sendInvitations: participants.length > 0,
+								sendByEmail: participants.length > 0,
+								startAtStep: participants.length > 0 ? 3 : 1,
+							},
+						};
+
+
 
 						const response = await this.helpers.httpRequest({
 							method: 'POST',
 							headers: authHeaders,
-							url: `${baseUrl}/v2/documents/${documentId}/send`,
+							url: `${baseUrl}/v2/documents/`,
 							body,
 							json: true,
 						});
+
 						returnData.push({ json: response as IDataObject });
 					}
 				}
