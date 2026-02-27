@@ -14,7 +14,7 @@ export class Allsign implements INodeType {
 		icon: 'file:allsign.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
+		subtitle: 'Create & Send Document',
 		description:
 			'Create, sign, and manage documents with AllSign e-signature platform. Firma electrónica, NOM-151, FEA, eIDAS.',
 		defaults: {
@@ -46,45 +46,8 @@ export class Allsign implements INodeType {
 			],
 		},
 		properties: [
-			// ------ Resource ------
-			{
-				displayName: 'Resource',
-				name: 'resource',
-				type: 'options',
-				noDataExpression: true,
-				default: 'document',
-				options: [
-					{
-						name: 'Document',
-						value: 'document',
-						description: 'Create, send, and manage documents for signing',
-					},
-				],
-			},
-			// ------ Operation ------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['document'],
-					},
-				},
-				default: 'createAndSend',
-				options: [
-					{
-						name: 'Create & Send',
-						value: 'createAndSend',
-						description: 'Upload a document and send it for signing in one step',
-						action: 'Create and send a document',
-					},
-				],
-			},
-
 			// ====================================================
-			// CREATE & SEND fields
+			// DOCUMENT DETAILS
 			// ====================================================
 
 			// ------ Document Name ------
@@ -96,12 +59,6 @@ export class Allsign implements INodeType {
 				required: true,
 				placeholder: 'e.g. Contract Q1 2026',
 				description: 'Name for the new document',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-					},
-				},
 			},
 
 			// ------ File Source ------
@@ -114,7 +71,7 @@ export class Allsign implements INodeType {
 					{
 						name: 'Binary Input',
 						value: 'binary',
-						description: 'Use binary data from a previous node',
+						description: 'Use binary data from a previous node (e.g. Read File, Google Drive, Dropbox)',
 					},
 					{
 						name: 'URL',
@@ -122,12 +79,6 @@ export class Allsign implements INodeType {
 						description: 'Provide a public URL to the PDF file',
 					},
 				],
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-					},
-				},
 			},
 			{
 				displayName: 'Binary Property',
@@ -137,8 +88,6 @@ export class Allsign implements INodeType {
 				description: 'Name of the binary property containing the PDF file',
 				displayOptions: {
 					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
 						fileSource: ['binary'],
 					},
 				},
@@ -152,16 +101,15 @@ export class Allsign implements INodeType {
 				description: 'Public URL of the PDF file to upload',
 				displayOptions: {
 					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
 						fileSource: ['url'],
 					},
 				},
 			},
 
 
-
-			// ====== SIGNERS ======
+			// ====================================================
+			// SIGNERS
+			// ====================================================
 			{
 				displayName: 'Signers',
 				name: 'signers',
@@ -173,24 +121,45 @@ export class Allsign implements INodeType {
 				required: true,
 				placeholder: 'Add Signer',
 				description: 'People who need to sign the document',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-					},
-				},
 				options: [
 					{
 						name: 'signerValues',
 						displayName: 'Signer',
 						values: [
 							{
-								displayName: 'Name',
-								name: 'name',
+								displayName: 'Country Code',
+								name: 'countryCode',
+								type: 'options',
+								default: '+52',
+								description: "Country code for the signer's WhatsApp number",
+								options: [
+									{ name: '🇦🇷 Argentina (+54)', value: '+54' },
+									{ name: '🇧🇷 Brazil (+55)', value: '+55' },
+									{ name: '🇨🇱 Chile (+56)', value: '+56' },
+									{ name: '🇨🇴 Colombia (+57)', value: '+57' },
+									{ name: '🇨🇷 Costa Rica (+506)', value: '+506' },
+									{ name: '🇪🇨 Ecuador (+593)', value: '+593' },
+									{ name: '🇪🇸 Spain (+34)', value: '+34' },
+									{ name: '🇬🇹 Guatemala (+502)', value: '+502' },
+									{ name: '🇲🇽 Mexico (+52)', value: '+52' },
+									{ name: '🇵🇦 Panama (+507)', value: '+507' },
+									{ name: '🇵🇪 Peru (+51)', value: '+51' },
+									{ name: '🇺🇸 United States (+1)', value: '+1' },
+									{ name: '🔢 Custom', value: 'custom' },
+								],
+							},
+							{
+								displayName: 'Custom Country Code',
+								name: 'customCountryCode',
 								type: 'string',
 								default: '',
-								required: true,
-								description: 'Full name of the signer',
+								placeholder: '+44',
+								description: 'Enter the country code manually (e.g. +44 for UK)',
+								displayOptions: {
+									show: {
+										countryCode: ['custom'],
+									},
+								},
 							},
 							{
 								displayName: 'Email',
@@ -202,19 +171,30 @@ export class Allsign implements INodeType {
 								description: 'Email address of the signer',
 							},
 							{
-								displayName: 'WhatsApp',
-								name: 'whatsapp',
+								displayName: 'Name',
+								name: 'name',
 								type: 'string',
 								default: '',
-								placeholder: '+525512345678',
-								description: 'WhatsApp number with country code (e.g. +525512345678). Required if Send by WhatsApp is enabled.',
+								required: true,
+								description: 'Full name of the signer',
+							},
+							{
+								displayName: 'Phone Number',
+								name: 'phoneNumber',
+								type: 'string',
+								default: '',
+								placeholder: '5512345678',
+								description:
+									'WhatsApp phone number without country code. Required if WhatsApp Notification is enabled.',
 							},
 						],
 					},
 				],
 			},
 
-			// ====== SIGNATURE FIELDS ======
+			// ====================================================
+			// SIGNATURE FIELDS
+			// ====================================================
 			{
 				displayName: 'Signature Fields',
 				name: 'signatureFields',
@@ -224,26 +204,63 @@ export class Allsign implements INodeType {
 				},
 				default: {},
 				placeholder: 'Add Signature Field',
-				description: 'Define where signatures should be placed on the document. If empty, signers will need to place fields manually.',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-					},
-				},
+				description:
+					'Define where signatures should be placed on the document. If empty, signers will need to place fields manually.',
 				options: [
 					{
 						name: 'fieldValues',
 						displayName: 'Field',
 						values: [
 							{
-								displayName: 'Signer Email',
-								name: 'participantEmail',
+								displayName: 'All Pages',
+								name: 'includeInAllPages',
+								type: 'boolean',
+								default: false,
+								description:
+									'Whether to place this field on every page of the document',
+								displayOptions: {
+									show: {
+										placementMode: ['coordinates'],
+									},
+								},
+							},
+							{
+								displayName: 'Anchor Text',
+								name: 'anchorString',
 								type: 'string',
 								default: '',
-								required: true,
-								placeholder: 'name@email.com',
-								description: 'Email of the signer this field belongs to (must match a signer email above)',
+								placeholder: 'e.g. Firma del Cliente',
+								description:
+									'Text to search for in the PDF — the signature field will be placed where this text appears',
+								displayOptions: {
+									show: {
+										placementMode: ['anchor'],
+									},
+								},
+							},
+							{
+								displayName: 'Height',
+								name: 'height',
+								type: 'number',
+								default: 100,
+								description:
+									'Height of the signature field in points. Width is auto-calculated (2:1 ratio).',
+							},
+							{
+								displayName: 'Page Number',
+								name: 'pageNumber',
+								type: 'number',
+								default: 1,
+								typeOptions: {
+									minValue: 1,
+								},
+								description:
+									'Page where the signature field should be placed (starts at 1). Ignored when All Pages is enabled.',
+								displayOptions: {
+									show: {
+										placementMode: ['coordinates'],
+									},
+								},
 							},
 							{
 								displayName: 'Placement Mode',
@@ -252,16 +269,27 @@ export class Allsign implements INodeType {
 								default: 'coordinates',
 								options: [
 									{
+										name: 'Anchor Text',
+										value: 'anchor',
+										description:
+											'Place field where a specific text is found in the PDF',
+									},
+									{
 										name: 'Coordinates (X, Y)',
 										value: 'coordinates',
 										description: 'Place field at specific X, Y coordinates on a page',
 									},
-									{
-										name: 'Anchor Text',
-										value: 'anchor',
-										description: 'Place field where a specific text is found in the PDF',
-									},
 								],
+							},
+							{
+								displayName: 'Signer Email',
+								name: 'participantEmail',
+								type: 'string',
+								default: '',
+								required: true,
+								placeholder: 'name@email.com',
+								description:
+									'Email of the signer this field belongs to (must match a signer email above)',
 							},
 							{
 								displayName: 'X Position',
@@ -287,440 +315,376 @@ export class Allsign implements INodeType {
 									},
 								},
 							},
-							{
-								displayName: 'Page Number',
-								name: 'pageNumber',
-								type: 'number',
-								default: 1,
-								typeOptions: {
-									minValue: 1,
-								},
-								description: 'Page where the signature field should be placed (starts at 1)',
-								displayOptions: {
-									show: {
-										placementMode: ['coordinates'],
-									},
-								},
-							},
-							{
-								displayName: 'All Pages',
-								name: 'includeInAllPages',
-								type: 'boolean',
-								default: false,
-								description: 'Whether to place this field on every page of the document',
-								displayOptions: {
-									show: {
-										placementMode: ['coordinates'],
-									},
-								},
-							},
-							{
-								displayName: 'Anchor Text',
-								name: 'anchorString',
-								type: 'string',
-								default: '',
-								placeholder: 'e.g. Firma del Cliente',
-								description: 'Text to search for in the PDF — the signature field will be placed where this text appears',
-								displayOptions: {
-									show: {
-										placementMode: ['anchor'],
-									},
-								},
-							},
-							{
-								displayName: 'Height',
-								name: 'height',
-								type: 'number',
-								default: 100,
-								description: 'Height of the signature field in points. Width is auto-calculated (2:1 ratio).',
-							},
 						],
 					},
 				],
 			},
 
-			// ====== DELIVERY OPTIONS ======
+			// ------ Folder Name ------
 			{
-				displayName: 'Send Invitations',
+				displayName: 'Folder Name',
+				name: 'folderName',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g. Contracts 2026',
+				description:
+					'Name of the folder where the document will be stored. Leave empty to use the default location.',
+			},
+
+			// ====================================================
+			// 📨 NOTIFICATION CONFIGURATION (collapsible)
+			// ====================================================
+			{
+				displayName: 'Notify Signers',
 				name: 'sendInvitations',
 				type: 'boolean',
 				default: true,
-				description: 'Whether to send signing invitations to participants after creating the document',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-					},
-				},
+				description:
+					'Whether to send signing links to each signer after the document is created. If disabled, you will need to share the signing links manually.',
 			},
 			{
-				displayName: 'Send by Email',
-				name: 'sendByEmail',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to send the invitation via email',
+				displayName: 'Notification Channels',
+				name: 'sendInviteConfig',
+				type: 'collection',
+				placeholder: 'Add Channel',
+				default: {},
+				description:
+					'Choose how signers receive their signing links — via email, WhatsApp, or both',
 				displayOptions: {
 					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
 						sendInvitations: [true],
 					},
 				},
-			},
-			{
-				displayName: 'Send by WhatsApp',
-				name: 'sendByWhatsapp',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to send the invitation via WhatsApp. Requires WhatsApp number on each signer.',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-						sendInvitations: [true],
+				options: [
+					{
+						displayName: 'Email Notification',
+						name: 'sendByEmail',
+						type: 'boolean',
+						default: true,
+						description:
+							'Whether to send each signer an email with a direct link to sign the document',
 					},
-				},
-			},
-
-			// ====== SIGNATURE OPTIONS ======
-			{
-				displayName: 'Autógrafa (Handwritten Signature)',
-				name: 'verifyAutografa',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require a handwritten-style digital signature with biometric capture',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+					{
+						displayName: 'WhatsApp Notification',
+						name: 'sendByWhatsapp',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to send each signer a WhatsApp message with a direct link to sign the document (requires a phone number on each signer)',
 					},
-				},
+				],
 			},
 
-			// ====== VERIFICATION OPTIONS ======
+			// ====================================================
+			// 🔐 SIGNATURE VALIDATIONS (collapsible)
+			// ====================================================
 			{
-				displayName: 'FEA (Advanced Electronic Signature)',
-				name: 'verifyFea',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require FEA (Firma Electrónica Avanzada) verification',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+				displayName: 'Signature Validations',
+				name: 'signatureValidations',
+				type: 'collection',
+				placeholder: 'Add Validation',
+				default: {},
+				description:
+					'Signature types and verification methods for legal validity and security',
+				options: [
+					{
+						displayName: 'Autógrafa (Handwritten Signature)',
+						name: 'verifyAutografa',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require a handwritten-style digital signature with biometric capture',
 					},
-				},
-			},
-			{
-				displayName: 'NOM-151 (Timestamping)',
-				name: 'verifyNom151',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to apply NOM-151 certified timestamping to the document',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+					{
+						displayName: 'Biometric Selfie',
+						name: 'verifyBiometricSelfie',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require a biometric selfie for identity matching (requires Identity Verification)',
 					},
-				},
-			},
-			{
-				displayName: 'Video Signature',
-				name: 'verifyVideo',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require a recorded video as part of the signing process',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+					{
+						displayName: 'Confirm Name',
+						name: 'verifyConfirmName',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require the signer to type their full name as confirmation',
 					},
-				},
-			},
-			{
-				displayName: 'Confirm Name',
-				name: 'verifyConfirmName',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require the signer to type their full name as confirmation',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+					{
+						displayName: 'FEA (Advanced Electronic Signature)',
+						name: 'verifyFea',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require FEA (Firma Electrónica Avanzada) verification',
 					},
-				},
-			},
-
-			// ====== IDENTITY VERIFICATION (parent toggle) ======
-			{
-				displayName: 'Identity Verification',
-				name: 'verifyIdentity',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require identity verification for signers',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
+					{
+						displayName: 'ID Scan',
+						name: 'verifyIdScan',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require signers to scan their government-issued ID (requires Identity Verification)',
 					},
-				},
-			},
-
-			// ------ ID Scan (child of Identity Verification) ------
-			{
-				displayName: 'ID Scan',
-				name: 'verifyIdScan',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require signers to scan their government-issued ID',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-						verifyIdentity: [true],
+					{
+						displayName: 'Identity Verification',
+						name: 'verifyIdentity',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require identity verification for signers',
 					},
-				},
-			},
-
-			// ------ Biometric Selfie (child of Identity Verification) ------
-			{
-				displayName: 'Biometric Selfie',
-				name: 'verifyBiometricSelfie',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to require a biometric selfie for identity matching',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-						verifyIdentity: [true],
+					{
+						displayName: 'NOM-151 (Timestamping)',
+						name: 'verifyNom151',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to apply NOM-151 certified timestamping to the document',
 					},
-				},
-			},
-
-			// ------ SynthID (child of Biometric Selfie) ------
-			{
-				displayName: 'SynthID (AI Detection)',
-				name: 'verifySynthId',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to verify the selfie was taken by a real person and not AI-generated',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['createAndSend'],
-						verifyIdentity: [true],
-						verifyBiometricSelfie: [true],
+					{
+						displayName: 'SynthID (AI Detection)',
+						name: 'verifySynthId',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to verify the selfie was taken by a real person and not AI-generated (requires Biometric Selfie)',
 					},
-				},
+					{
+						displayName: 'Video Signature',
+						name: 'verifyVideo',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to require a recorded video as part of the signing process',
+					},
+				],
 			},
 		],
 	};
 
-
-
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const resource = this.getNodeParameter('resource', 0) as string;
-		const operation = this.getNodeParameter('operation', 0) as string;
 		const credentials = await this.getCredentials('allSignApi');
-		const baseUrl = ((credentials.baseUrl as string) || 'https://api.allsign.io').replace(/\/+$/, '');
+		const baseUrl = ((credentials.baseUrl as string) || 'https://api.allsign.io').replace(
+			/\/+$/,
+			'',
+		);
 		const apiKey = credentials.apiKey as string;
 		const authHeaders = { Authorization: `Bearer ${apiKey}` };
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				if (resource === 'document') {
-					// ============ CREATE & SEND ============
-					if (operation === 'createAndSend') {
-						const documentName = this.getNodeParameter('documentName', i) as string;
-						const fileSource = this.getNodeParameter('fileSource', i) as string;
+				const documentName = this.getNodeParameter('documentName', i) as string;
+				const fileSource = this.getNodeParameter('fileSource', i) as string;
 
-						const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
-							name: string;
-							email: string;
-							whatsapp?: string;
-						}>;
-						const verifyAutografa = this.getNodeParameter('verifyAutografa', i, false) as boolean;
-						const verifyFea = this.getNodeParameter('verifyFea', i, false) as boolean;
-						const verifyNom151 = this.getNodeParameter('verifyNom151', i, false) as boolean;
-						const verifyVideo = this.getNodeParameter('verifyVideo', i, false) as boolean;
-						const verifyConfirmName = this.getNodeParameter('verifyConfirmName', i, false) as boolean;
-						const verifyIdentity = this.getNodeParameter('verifyIdentity', i, false) as boolean;
+				const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
+					name: string;
+					email: string;
+					countryCode?: string;
+					customCountryCode?: string;
+					phoneNumber?: string;
+				}>;
 
-						// Delivery options
-						const sendInvitations = this.getNodeParameter('sendInvitations', i, true) as boolean;
-						const sendByEmail = sendInvitations
-							? (this.getNodeParameter('sendByEmail', i, true) as boolean)
-							: false;
-						const sendByWhatsapp = sendInvitations
-							? (this.getNodeParameter('sendByWhatsapp', i, false) as boolean)
-							: false;
+				// Send Invite Configuration (from collapsible collection)
+				const sendInvitations = this.getNodeParameter('sendInvitations', i, true) as boolean;
+				const sendInviteConfig = sendInvitations
+					? (this.getNodeParameter('sendInviteConfig', i, {}) as IDataObject)
+					: {};
+				const sendByEmail = (sendInviteConfig.sendByEmail as boolean) ?? true;
+				const sendByWhatsapp = (sendInviteConfig.sendByWhatsapp as boolean) ?? false;
 
-						// Signature fields
-						const fieldsData = this.getNodeParameter('signatureFields.fieldValues', i, []) as Array<{
-							participantEmail: string;
-							placementMode: string;
-							x?: number;
-							y?: number;
-							pageNumber?: number;
-							includeInAllPages?: boolean;
-							anchorString?: string;
-							height?: number;
-						}>;
+				// Signature Validations (from collapsible collection)
+				const sigValidations = this.getNodeParameter('signatureValidations', i, {}) as IDataObject;
+				const verifyAutografa = (sigValidations.verifyAutografa as boolean) ?? false;
+				const verifyFea = (sigValidations.verifyFea as boolean) ?? false;
+				const verifyNom151 = (sigValidations.verifyNom151 as boolean) ?? false;
+				const verifyVideo = (sigValidations.verifyVideo as boolean) ?? false;
+				const verifyConfirmName = (sigValidations.verifyConfirmName as boolean) ?? false;
+				const verifyIdentity = (sigValidations.verifyIdentity as boolean) ?? false;
+				const verifyIdScan = (sigValidations.verifyIdScan as boolean) ?? false;
+				const verifyBiometricSelfie = (sigValidations.verifyBiometricSelfie as boolean) ?? false;
+				const verifySynthId = (sigValidations.verifySynthId as boolean) ?? false;
 
-						// Get file as base64
-						let fileBase64: string;
-						let fileName: string;
+				// Signature fields
+				const fieldsData = this.getNodeParameter(
+					'signatureFields.fieldValues',
+					i,
+					[],
+				) as Array<{
+					participantEmail: string;
+					placementMode: string;
+					x?: number;
+					y?: number;
+					pageNumber?: number;
+					includeInAllPages?: boolean;
+					anchorString?: string;
+					height?: number;
+				}>;
 
-						if (fileSource === 'url') {
-							const fileUrl = this.getNodeParameter('fileUrl', i) as string;
-							// Download the file and convert to base64
-							const fileBuffer = await this.helpers.httpRequest({
-								method: 'GET',
-								url: fileUrl,
-								encoding: 'arraybuffer',
-								returnFullResponse: false,
-							}) as Buffer;
-							fileBase64 = Buffer.from(fileBuffer).toString('base64');
-							// Extract filename from URL or use default
-							const urlParts = fileUrl.split('/');
-							fileName = urlParts[urlParts.length - 1] || 'document.pdf';
-						} else {
-							// Binary upload
-							const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
-							const binaryData = this.helpers.assertBinaryData(i, binaryProperty);
-							const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
-							fileBase64 = buffer.toString('base64');
-							fileName = binaryData.fileName || 'document.pdf';
-						}
+				// Folder name (optional)
+				const folderName = this.getNodeParameter('folderName', i, '') as string;
 
-						// Build signatureValidation from toggle options
-						const signatureValidation: Record<string, boolean> = {
-							autografa: verifyAutografa,
-							FEA: verifyFea,
-							nom151: verifyNom151,
-							biometric_signature: verifyVideo,
-							confirm_name_to_finish: verifyConfirmName,
+				// Get file as base64
+				let fileBase64: string;
+				let fileName: string;
+
+				if (fileSource === 'url') {
+					const fileUrl = this.getNodeParameter('fileUrl', i) as string;
+					// Download the file and convert to base64
+					const fileBuffer = (await this.helpers.httpRequest({
+						method: 'GET',
+						url: fileUrl,
+						encoding: 'arraybuffer',
+						returnFullResponse: false,
+					})) as Buffer;
+					fileBase64 = Buffer.from(fileBuffer).toString('base64');
+					// Extract filename from URL or use default
+					const urlParts = fileUrl.split('/');
+					fileName = urlParts[urlParts.length - 1] || 'document.pdf';
+				} else {
+					// Binary upload — automatically converted to base64
+					const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
+					const binaryData = this.helpers.assertBinaryData(i, binaryProperty);
+					const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
+					fileBase64 = buffer.toString('base64');
+					fileName = binaryData.fileName || 'document.pdf';
+				}
+
+				// Build signatureValidation from toggle options
+				const signatureValidation: Record<string, boolean> = {
+					autografa: verifyAutografa,
+					FEA: verifyFea,
+					nom151: verifyNom151,
+					biometric_signature: verifyVideo,
+					confirm_name_to_finish: verifyConfirmName,
+				};
+
+				if (verifyIdentity) {
+					if (verifyBiometricSelfie) {
+						signatureValidation.ai_verification = verifySynthId;
+					}
+					if (verifyIdScan) signatureValidation.ai_verification = true;
+				}
+
+				// Build participants from signers (include whatsapp if provided)
+				const participants = signersData.map((signer) => {
+					const participant: Record<string, string> = {
+						email: signer.email,
+						name: signer.name,
+					};
+					if (signer.phoneNumber && signer.phoneNumber.trim() !== '') {
+						const code = signer.countryCode === 'custom'
+							? (signer.customCountryCode || '+52')
+							: (signer.countryCode || '+52');
+						participant.whatsapp = `${code}${signer.phoneNumber.trim()}`;
+					}
+					return participant;
+				});
+
+				// Build signature fields
+				const fields = fieldsData.map((field) => {
+					if (field.placementMode === 'anchor') {
+						return {
+							participantEmail: field.participantEmail,
+							anchorString: field.anchorString || '',
+							height: field.height || 100,
 						};
+					}
+					// Coordinate placement
+					const fieldObj: Record<string, unknown> = {
+						participantEmail: field.participantEmail,
+						position: {
+							x: field.x ?? 100,
+							y: field.y ?? 500,
+						},
+						height: field.height || 100,
+					};
+					if (field.includeInAllPages) {
+						fieldObj.includeInAllPages = true;
+					} else {
+						fieldObj.pageNumber = field.pageNumber || 1;
+					}
+					return fieldObj;
+				});
 
-						if (verifyIdentity) {
-							const verifyIdScan = this.getNodeParameter('verifyIdScan', i, false) as boolean;
-							const verifyBiometricSelfie = this.getNodeParameter('verifyBiometricSelfie', i, false) as boolean;
-							if (verifyBiometricSelfie) {
-								const verifySynthId = this.getNodeParameter('verifySynthId', i, false) as boolean;
-								signatureValidation.ai_verification = verifySynthId;
-							}
-							// ID scan and biometric selfie are handled by the platform
-							if (verifyIdScan) signatureValidation.ai_verification = true;
-						}
+				// Step 1: Create document WITHOUT sending invitations
+				// Invitations are sent separately via invite-bulk endpoint
+				// which uses the new GuestSession flow with correct WhatsApp template
+				const hasParticipants = participants.length > 0;
+				const startAtStep = hasParticipants ? 2 : 1;
 
-						// Build participants from signers (include whatsapp if provided)
-						const participants = signersData.map((signer) => {
-							const participant: Record<string, string> = {
-								email: signer.email,
-								name: signer.name,
-							};
-							if (signer.whatsapp && signer.whatsapp.trim() !== '') {
-								participant.whatsapp = signer.whatsapp.trim();
-							}
-							return participant;
-						});
+				const body: Record<string, unknown> = {
+					document: {
+						base64Content: fileBase64,
+						name: fileName.endsWith('.pdf') ? fileName : `${documentName}.pdf`,
+					},
+					participants,
+					signatureValidation,
+					config: {
+						sendInvitations: false,
+						sendByEmail: false,
+						sendByWhatsapp: false,
+						startAtStep,
+					},
+				};
 
-						// Build signature fields
-						const fields = fieldsData.map((field) => {
-							if (field.placementMode === 'anchor') {
-								return {
-									participantEmail: field.participantEmail,
-									anchorString: field.anchorString || '',
-									height: field.height || 100,
-								};
-							}
-							// Coordinate placement
-							const fieldObj: Record<string, unknown> = {
-								participantEmail: field.participantEmail,
-								position: {
-									x: field.x ?? 100,
-									y: field.y ?? 500,
-								},
-								height: field.height || 100,
-							};
-							if (field.includeInAllPages) {
-								fieldObj.includeInAllPages = true;
-							} else {
-								fieldObj.pageNumber = field.pageNumber || 1;
-							}
-							return fieldObj;
-						});
+				// Only include fields if any were defined
+				if (fields.length > 0) {
+					body.fields = fields;
+				}
 
-// Step 1: Create document WITHOUT sending invitations
-// Invitations are sent separately via invite-bulk endpoint
-// which uses the new GuestSession flow with correct WhatsApp template
-const hasParticipants = participants.length > 0;
-const startAtStep = hasParticipants ? 2 : 1;
+				// Include folder name if specified
+				if (folderName.trim()) {
+					body.folderName = folderName.trim();
+				}
 
-const body: Record<string, unknown> = {
-document: {
-base64Content: fileBase64,
-name: fileName.endsWith('.pdf') ? fileName : `${documentName}.pdf`,
-},
-participants,
-signatureValidation,
-config: {
-sendInvitations: false,
-sendByEmail: false,
-sendByWhatsapp: false,
-startAtStep,
-},
-};
+				const createResponse = (await this.helpers.httpRequest({
+					method: 'POST',
+					headers: authHeaders,
+					url: `${baseUrl}/v2/documents/`,
+					body,
+					json: true,
+				})) as IDataObject;
 
-// Only include fields if any were defined
-if (fields.length > 0) {
-body.fields = fields;
-}
+				const documentId = createResponse.id as string;
 
-const createResponse = await this.helpers.httpRequest({
-method: 'POST',
-headers: authHeaders,
-url: `${baseUrl}/v2/documents/`,
-body,
-json: true,
-}) as IDataObject;
+				// Step 2: Send invitations via invite-bulk (new GuestSession flow)
+				if (sendInvitations && hasParticipants && documentId) {
+					const inviteBody = {
+						participants: participants.map((p) => {
+							const part: Record<string, string> = { email: p.email };
+							if (p.whatsapp) part.whatsapp = p.whatsapp;
+							if (p.name) part.name = p.name;
+							return part;
+						}),
+						config: {
+							sendInvitationByEmail: sendByEmail,
+							sendInvitationByWhatsapp: sendByWhatsapp,
+							invitedByEmail: participants[0]?.email || '',
+						},
+					};
 
-const documentId = createResponse.id as string;
+					try {
+						const inviteResponse = (await this.helpers.httpRequest({
+							method: 'POST',
+							headers: authHeaders,
+							url: `${baseUrl}/v2/documents/${documentId}/invite-bulk`,
+							body: inviteBody,
+							json: true,
+						})) as IDataObject;
 
-// Step 2: Send invitations via invite-bulk (new GuestSession flow)
-if (sendInvitations && hasParticipants && documentId) {
-const inviteBody = {
-participants: participants.map((p) => { const part: Record<string, string> = { email: p.email }; if (p.whatsapp) part.whatsapp = p.whatsapp; if (p.name) part.name = p.name; return part; }),
-config: {
-sendInvitationByEmail: sendByEmail,
-sendInvitationByWhatsapp: sendByWhatsapp,
-invitedByEmail: participants[0]?.email || '',
-},
-};
-
-try {
-const inviteResponse = await this.helpers.httpRequest({
-method: 'POST',
-headers: authHeaders,
-url: `${baseUrl}/v2/documents/${documentId}/invite-bulk`,
-body: inviteBody,
-json: true,
-}) as IDataObject;
-
-createResponse.invitations = inviteResponse;
-} catch (inviteError) {
-const invErr = inviteError as { message?: string };
-createResponse.invitationError = invErr.message || 'Failed to send invitations';
-}
-}
-
-returnData.push({ json: createResponse });
-
+						createResponse.invitations = inviteResponse;
+					} catch (inviteError) {
+						const invErr = inviteError as { message?: string };
+						createResponse.invitationError =
+							invErr.message || 'Failed to send invitations';
 					}
 				}
+
+				returnData.push({ json: createResponse });
 			} catch (error) {
 				if (this.continueOnFail()) {
 					returnData.push({ json: { error: (error as Error).message } });
@@ -728,12 +692,16 @@ returnData.push({ json: createResponse });
 				}
 
 				const err = error as {
-					response?: { data?: { message?: string; error?: string; detail?: string | object }; status?: number };
+					response?: {
+						data?: { message?: string; error?: string; detail?: string | object };
+						status?: number;
+					};
 					message?: string;
 					context?: { itemIndex?: number };
 				};
 				const errorData = err.response?.data || {};
-				let apiMessage = errorData.message || errorData.error || err.message || 'Unknown error';
+				let apiMessage =
+					errorData.message || errorData.error || err.message || 'Unknown error';
 
 				// Handle detail field (AllSign returns errors in detail)
 				if (errorData.detail) {
@@ -744,10 +712,14 @@ returnData.push({ json: createResponse });
 					}
 				}
 
-				throw new NodeOperationError(this.getNode(), `AllSign API Error: ${apiMessage}`, {
-					itemIndex: i,
-					description: `HTTP Status Code: ${err.response?.status || 'N/A'}`,
-				});
+				throw new NodeOperationError(
+					this.getNode(),
+					`AllSign API Error: ${apiMessage}`,
+					{
+						itemIndex: i,
+						description: `HTTP Status Code: ${err.response?.status || 'N/A'}`,
+					},
+				);
 			}
 		}
 
