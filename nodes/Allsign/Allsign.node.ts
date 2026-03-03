@@ -43,6 +43,7 @@ export class Allsign implements INodeType {
 				'eIDAS',
 				'Signer',
 				'Firmante',
+				'WhatsApp',
 			],
 		},
 		properties: [
@@ -120,12 +121,28 @@ export class Allsign implements INodeType {
 				default: {},
 				required: true,
 				placeholder: 'Add Signer',
-				description: 'People who need to sign the document',
+				description: 'People who need to sign the document. Each signer needs at least an email or a WhatsApp number.',
 				options: [
 					{
 						name: 'signerValues',
 						displayName: 'Signer',
 						values: [
+							{
+								displayName: 'Name',
+								name: 'name',
+								type: 'string',
+								default: '',
+								required: true,
+								description: 'Full name of the signer',
+							},
+							{
+								displayName: 'Email',
+								name: 'email',
+								type: 'string',
+								placeholder: 'name@email.com',
+								default: '',
+								description: 'Email address of the signer. Optional if a WhatsApp phone number is provided.',
+							},
 							{
 								displayName: 'Country Code',
 								name: 'countryCode',
@@ -162,30 +179,13 @@ export class Allsign implements INodeType {
 								},
 							},
 							{
-								displayName: 'Email',
-								name: 'email',
-								type: 'string',
-								placeholder: 'name@email.com',
-								default: '',
-								required: true,
-								description: 'Email address of the signer',
-							},
-							{
-								displayName: 'Name',
-								name: 'name',
-								type: 'string',
-								default: '',
-								required: true,
-								description: 'Full name of the signer',
-							},
-							{
 								displayName: 'Phone Number',
 								name: 'phoneNumber',
 								type: 'string',
 								default: '',
 								placeholder: '5512345678',
 								description:
-									'WhatsApp phone number without country code. Required if WhatsApp Notification is enabled.',
+									'WhatsApp phone number without country code. Required if email is not provided.',
 							},
 						],
 					},
@@ -205,12 +205,81 @@ export class Allsign implements INodeType {
 				default: {},
 				placeholder: 'Add Signature Field',
 				description:
-					'Define where signatures should be placed on the document. If empty, signers will need to place fields manually.',
+					'Define where signatures should be placed on the document. Only assignable to signers with an email address. If empty, signers place fields manually.',
 				options: [
 					{
 						name: 'fieldValues',
 						displayName: 'Field',
 						values: [
+							{
+								displayName: 'Placement Mode',
+								name: 'placementMode',
+								type: 'options',
+								default: 'coordinates',
+								options: [
+									{
+										name: 'Anchor Text',
+										value: 'anchor',
+										description:
+											'Place field where a specific text is found in the PDF',
+									},
+									{
+										name: 'Coordinates (X, Y)',
+										value: 'coordinates',
+										description: 'Place field at specific X, Y coordinates on a page',
+									},
+								],
+							},
+							{
+								displayName: 'Signer Email',
+								name: 'participantEmail',
+								type: 'string',
+								default: '',
+								required: true,
+								placeholder: 'name@email.com',
+								description:
+									'Email of the signer this field belongs to (must match a signer email above). Signature fields can only be pre-assigned to signers with email addresses.',
+							},
+							{
+								displayName: 'Page Number',
+								name: 'pageNumber',
+								type: 'number',
+								default: 1,
+								typeOptions: {
+									minValue: 1,
+								},
+								description:
+									'Page where the signature field should be placed (starts at 1). Ignored when All Pages is enabled.',
+								displayOptions: {
+									show: {
+										placementMode: ['coordinates'],
+									},
+								},
+							},
+							{
+								displayName: 'X Position',
+								name: 'x',
+								type: 'number',
+								default: 100,
+								description: 'Horizontal position in points from left edge of page',
+								displayOptions: {
+									show: {
+										placementMode: ['coordinates'],
+									},
+								},
+							},
+							{
+								displayName: 'Y Position',
+								name: 'y',
+								type: 'number',
+								default: 500,
+								description: 'Vertical position in points from top edge of page',
+								displayOptions: {
+									show: {
+										placementMode: ['coordinates'],
+									},
+								},
+							},
 							{
 								displayName: 'All Pages',
 								name: 'includeInAllPages',
@@ -246,131 +315,30 @@ export class Allsign implements INodeType {
 								description:
 									'Height of the signature field in points. Width is auto-calculated (2:1 ratio).',
 							},
-							{
-								displayName: 'Page Number',
-								name: 'pageNumber',
-								type: 'number',
-								default: 1,
-								typeOptions: {
-									minValue: 1,
-								},
-								description:
-									'Page where the signature field should be placed (starts at 1). Ignored when All Pages is enabled.',
-								displayOptions: {
-									show: {
-										placementMode: ['coordinates'],
-									},
-								},
-							},
-							{
-								displayName: 'Placement Mode',
-								name: 'placementMode',
-								type: 'options',
-								default: 'coordinates',
-								options: [
-									{
-										name: 'Anchor Text',
-										value: 'anchor',
-										description:
-											'Place field where a specific text is found in the PDF',
-									},
-									{
-										name: 'Coordinates (X, Y)',
-										value: 'coordinates',
-										description: 'Place field at specific X, Y coordinates on a page',
-									},
-								],
-							},
-							{
-								displayName: 'Signer Email',
-								name: 'participantEmail',
-								type: 'string',
-								default: '',
-								required: true,
-								placeholder: 'name@email.com',
-								description:
-									'Email of the signer this field belongs to (must match a signer email above)',
-							},
-							{
-								displayName: 'X Position',
-								name: 'x',
-								type: 'number',
-								default: 100,
-								description: 'Horizontal position in points from left edge of page',
-								displayOptions: {
-									show: {
-										placementMode: ['coordinates'],
-									},
-								},
-							},
-							{
-								displayName: 'Y Position',
-								name: 'y',
-								type: 'number',
-								default: 500,
-								description: 'Vertical position in points from top edge of page',
-								displayOptions: {
-									show: {
-										placementMode: ['coordinates'],
-									},
-								},
-							},
 						],
 					},
 				],
 			},
 
-			// ------ Folder Name ------
-			{
-				displayName: 'Folder Name',
-				name: 'folderName',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. Contracts 2026',
-				description:
-					'Name of the folder where the document will be stored. Leave empty to use the default location.',
-			},
-
 			// ====================================================
-			// 📨 NOTIFICATION CONFIGURATION (collapsible)
+			// 📨 NOTIFICATIONS (collapsible)
 			// ====================================================
 			{
-				displayName: 'Notify Signers',
-				name: 'sendInvitations',
-				type: 'boolean',
-				default: true,
-				description:
-					'Whether to send signing links to each signer after the document is created. If disabled, you will need to share the signing links manually.',
-			},
-			{
-				displayName: 'Notification Channels',
-				name: 'sendInviteConfig',
+				displayName: 'Notifications',
+				name: 'notificationSettings',
 				type: 'collection',
-				placeholder: 'Add Channel',
+				placeholder: 'Configure Notifications',
 				default: {},
 				description:
-					'Choose how signers receive their signing links — via email, WhatsApp, or both',
-				displayOptions: {
-					show: {
-						sendInvitations: [true],
-					},
-				},
+					'Configure how signers receive their signing links. The channel (email or WhatsApp) is auto-detected based on each signer\'s contact info.',
 				options: [
 					{
-						displayName: 'Email Notification',
-						name: 'sendByEmail',
+						displayName: 'Send Invitations',
+						name: 'sendInvitations',
 						type: 'boolean',
 						default: true,
 						description:
-							'Whether to send each signer an email with a direct link to sign the document',
-					},
-					{
-						displayName: 'WhatsApp Notification',
-						name: 'sendByWhatsapp',
-						type: 'boolean',
-						default: false,
-						description:
-							'Whether to send each signer a WhatsApp message with a direct link to sign the document (requires a phone number on each signer)',
+							'Whether to send signing links to each signer after the document is created. The best channel is auto-detected per signer. Disable to share links manually.',
 					},
 				],
 			},
@@ -391,9 +359,9 @@ export class Allsign implements INodeType {
 						displayName: 'Autógrafa (Handwritten Signature)',
 						name: 'verifyAutografa',
 						type: 'boolean',
-						default: false,
+						default: true,
 						description:
-							'Whether to require a handwritten-style digital signature with biometric capture',
+							'Whether to require a handwritten-style digital signature with biometric capture. Enabled by default.',
 					},
 					{
 						displayName: 'Biometric Selfie',
@@ -401,7 +369,7 @@ export class Allsign implements INodeType {
 						type: 'boolean',
 						default: false,
 						description:
-							'Whether to require a biometric selfie for identity matching (requires Identity Verification)',
+							'Whether to require a biometric selfie for face comparison against the signer\'s ID',
 					},
 					{
 						displayName: 'Confirm Name',
@@ -410,6 +378,14 @@ export class Allsign implements INodeType {
 						default: false,
 						description:
 							'Whether to require the signer to type their full name as confirmation',
+					},
+					{
+						displayName: 'eIDAS (European Electronic Signature)',
+						name: 'verifyEidas',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to apply eIDAS compliance to the document for European legal validity',
 					},
 					{
 						displayName: 'FEA (Advanced Electronic Signature)',
@@ -425,7 +401,7 @@ export class Allsign implements INodeType {
 						type: 'boolean',
 						default: false,
 						description:
-							'Whether to require signers to scan their government-issued ID (requires Identity Verification)',
+							'Whether to require signers to scan their government-issued ID',
 					},
 					{
 						displayName: 'Identity Verification',
@@ -457,7 +433,48 @@ export class Allsign implements INodeType {
 						type: 'boolean',
 						default: false,
 						description:
-							'Whether to require a recorded video as part of the signing process',
+							'Whether to require a recorded video of the signer during the signing process',
+					},
+				],
+			},
+
+			// ====================================================
+			// ⚙️ ADDITIONAL OPTIONS (collapsible)
+			// ====================================================
+			{
+				displayName: 'Additional Options',
+				name: 'additionalOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				description:
+					'Additional configuration for the document',
+				options: [
+					{
+						displayName: 'Expires At',
+						name: 'expiresAt',
+						type: 'dateTime',
+						default: '',
+						description:
+							'Optional expiration deadline (ISO 8601). After this date, the document expires and can no longer be signed.',
+					},
+					{
+						displayName: 'Folder Name',
+						name: 'folderName',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. Contracts 2026',
+						description:
+							'Name of the folder where the document will be stored. Leave empty to use the default location.',
+					},
+					{
+						displayName: 'Placeholders (DOCX)',
+						name: 'placeholders',
+						type: 'json',
+						default: '{}',
+						placeholder: '{"client_name": "Juan Pérez", "amount": "$10,000"}',
+						description:
+							'Key-value pairs to replace variables in DOCX templates (e.g. {{ client_name }} → "Juan Pérez"). Only applied for .docx files; ignored for PDFs.',
 					},
 				],
 			},
@@ -482,24 +499,21 @@ export class Allsign implements INodeType {
 
 				const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
 					name: string;
-					email: string;
+					email?: string;
 					countryCode?: string;
 					customCountryCode?: string;
 					phoneNumber?: string;
 				}>;
 
-				// Send Invite Configuration (from collapsible collection)
-				const sendInvitations = this.getNodeParameter('sendInvitations', i, true) as boolean;
-				const sendInviteConfig = sendInvitations
-					? (this.getNodeParameter('sendInviteConfig', i, {}) as IDataObject)
-					: {};
-				const sendByEmail = (sendInviteConfig.sendByEmail as boolean) ?? true;
-				const sendByWhatsapp = (sendInviteConfig.sendByWhatsapp as boolean) ?? false;
+				// Notifications (simplified — channel auto-detected by backend)
+				const notifSettings = this.getNodeParameter('notificationSettings', i, {}) as IDataObject;
+				const sendInvitations = (notifSettings.sendInvitations as boolean) ?? true;
 
 				// Signature Validations (from collapsible collection)
 				const sigValidations = this.getNodeParameter('signatureValidations', i, {}) as IDataObject;
-				const verifyAutografa = (sigValidations.verifyAutografa as boolean) ?? false;
+				const verifyAutografa = (sigValidations.verifyAutografa as boolean) ?? true;
 				const verifyFea = (sigValidations.verifyFea as boolean) ?? false;
+				const verifyEidas = (sigValidations.verifyEidas as boolean) ?? false;
 				const verifyNom151 = (sigValidations.verifyNom151 as boolean) ?? false;
 				const verifyVideo = (sigValidations.verifyVideo as boolean) ?? false;
 				const verifyConfirmName = (sigValidations.verifyConfirmName as boolean) ?? false;
@@ -524,8 +538,22 @@ export class Allsign implements INodeType {
 					height?: number;
 				}>;
 
-				// Folder name (optional)
-				const folderName = this.getNodeParameter('folderName', i, '') as string;
+				// Additional Options (from collapsible collection)
+				const additionalOpts = this.getNodeParameter('additionalOptions', i, {}) as IDataObject;
+				const folderName = (additionalOpts.folderName as string) ?? '';
+				const expiresAt = (additionalOpts.expiresAt as string) ?? '';
+				const placeholdersRaw = (additionalOpts.placeholders as string) ?? '{}';
+
+				// Parse placeholders JSON
+				let placeholders: Record<string, string> | undefined;
+				try {
+					const parsed = JSON.parse(placeholdersRaw);
+					if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+						placeholders = parsed;
+					}
+				} catch {
+					// Invalid JSON — ignore silently
+				}
 
 				// Get file as base64
 				let fileBase64: string;
@@ -533,7 +561,6 @@ export class Allsign implements INodeType {
 
 				if (fileSource === 'url') {
 					const fileUrl = this.getNodeParameter('fileUrl', i) as string;
-					// Download the file and convert to base64
 					const fileBuffer = (await this.helpers.httpRequest({
 						method: 'GET',
 						url: fileUrl,
@@ -541,11 +568,9 @@ export class Allsign implements INodeType {
 						returnFullResponse: false,
 					})) as Buffer;
 					fileBase64 = Buffer.from(fileBuffer).toString('base64');
-					// Extract filename from URL or use default
 					const urlParts = fileUrl.split('/');
 					fileName = urlParts[urlParts.length - 1] || 'document.pdf';
 				} else {
-					// Binary upload — automatically converted to base64
 					const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
 					const binaryData = this.helpers.assertBinaryData(i, binaryProperty);
 					const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
@@ -553,34 +578,47 @@ export class Allsign implements INodeType {
 					fileName = binaryData.fileName || 'document.pdf';
 				}
 
-				// Build signatureValidation from toggle options
+				// Build signatureValidation — corrected field mappings
 				const signatureValidation: Record<string, boolean> = {
 					autografa: verifyAutografa,
 					FEA: verifyFea,
+					eidas: verifyEidas,
 					nom151: verifyNom151,
-					biometric_signature: verifyVideo,
+					videofirma: verifyVideo,
+					biometric_signature: verifyBiometricSelfie,
 					confirm_name_to_finish: verifyConfirmName,
+					id_scan: verifyIdScan,
 				};
 
 				if (verifyIdentity) {
-					if (verifyBiometricSelfie) {
-						signatureValidation.ai_verification = verifySynthId;
-					}
-					if (verifyIdScan) signatureValidation.ai_verification = true;
+					signatureValidation.ai_verification = verifySynthId || verifyIdScan;
 				}
 
-				// Build participants from signers (include whatsapp if provided)
+				// Build participants (email is optional — at least email or WhatsApp required)
 				const participants = signersData.map((signer) => {
 					const participant: Record<string, string> = {
-						email: signer.email,
 						name: signer.name,
 					};
+
+					if (signer.email && signer.email.trim() !== '') {
+						participant.email = signer.email.trim();
+					}
+
 					if (signer.phoneNumber && signer.phoneNumber.trim() !== '') {
 						const code = signer.countryCode === 'custom'
 							? (signer.customCountryCode || '+52')
 							: (signer.countryCode || '+52');
 						participant.whatsapp = `${code}${signer.phoneNumber.trim()}`;
 					}
+
+					if (!participant.email && !participant.whatsapp) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Signer "${signer.name}" must have at least an email address or a WhatsApp phone number`,
+							{ itemIndex: i },
+						);
+					}
+
 					return participant;
 				});
 
@@ -593,7 +631,6 @@ export class Allsign implements INodeType {
 							height: field.height || 100,
 						};
 					}
-					// Coordinate placement
 					const fieldObj: Record<string, unknown> = {
 						participantEmail: field.participantEmail,
 						position: {
@@ -610,11 +647,18 @@ export class Allsign implements INodeType {
 					return fieldObj;
 				});
 
-				// Step 1: Create document WITHOUT sending invitations
-				// Invitations are sent separately via invite-bulk endpoint
-				// which uses the new GuestSession flow with correct WhatsApp template
+				// Build request body — no deprecated sendByEmail/sendByWhatsapp
 				const hasParticipants = participants.length > 0;
 				const startAtStep = hasParticipants ? 2 : 1;
+
+				const configObj: Record<string, unknown> = {
+					sendInvitations: false,
+					startAtStep,
+				};
+
+				if (expiresAt) {
+					configObj.expiresAt = expiresAt;
+				}
 
 				const body: Record<string, unknown> = {
 					document: {
@@ -623,22 +667,19 @@ export class Allsign implements INodeType {
 					},
 					participants,
 					signatureValidation,
-					config: {
-						sendInvitations: false,
-						sendByEmail: false,
-						sendByWhatsapp: false,
-						startAtStep,
-					},
+					config: configObj,
 				};
 
-				// Only include fields if any were defined
 				if (fields.length > 0) {
 					body.fields = fields;
 				}
 
-				// Include folder name if specified
 				if (folderName.trim()) {
 					body.folderName = folderName.trim();
+				}
+
+				if (placeholders) {
+					body.placeholders = placeholders;
 				}
 
 				const createResponse = (await this.helpers.httpRequest({
@@ -651,19 +692,19 @@ export class Allsign implements INodeType {
 
 				const documentId = createResponse.id as string;
 
-				// Step 2: Send invitations via invite-bulk (new GuestSession flow)
+				// Step 2: Send invitations via invite-bulk (auto-detects channel per participant)
 				if (sendInvitations && hasParticipants && documentId) {
 					const inviteBody = {
 						participants: participants.map((p) => {
-							const part: Record<string, string> = { email: p.email };
+							const part: Record<string, string> = {};
+							if (p.email) part.email = p.email;
 							if (p.whatsapp) part.whatsapp = p.whatsapp;
 							if (p.name) part.name = p.name;
 							return part;
 						}),
 						config: {
-							sendInvitationByEmail: sendByEmail,
-							sendInvitationByWhatsapp: sendByWhatsapp,
-							invitedByEmail: participants[0]?.email || '',
+							sendInvitationByEmail: true,
+							sendInvitationByWhatsapp: true,
 						},
 					};
 
@@ -703,7 +744,6 @@ export class Allsign implements INodeType {
 				let apiMessage =
 					errorData.message || errorData.error || err.message || 'Unknown error';
 
-				// Handle detail field (AllSign returns errors in detail)
 				if (errorData.detail) {
 					if (typeof errorData.detail === 'string') {
 						apiMessage = errorData.detail;
