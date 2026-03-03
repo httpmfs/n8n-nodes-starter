@@ -6,43 +6,92 @@
 
 [n8n](https://n8n.io) community node for the **[AllSign](https://allsign.io)** e-signature platform.
 
-Create and send documents for electronic signature directly from your n8n workflows using the AllSign API v2.
+Create, retrieve, and manage documents for electronic signature directly from your n8n workflows using the AllSign API V2.
 
-> **🇲🇽 Español:** Nodo comunitario de n8n para firma electrónica con AllSign. Crea y envía documentos a firmar desde workflows de n8n.
+> **🇲🇽 Español:** Nodo comunitario de n8n para firma electrónica con AllSign. Crea, consulta y gestiona documentos a firmar desde workflows de n8n.
 
 ---
 
 ## ✨ Features / Características
 
-### 📄 Document — Create & Send
+### 📄 4 Operations / Operaciones
 
-Upload a PDF (from URL or binary input) and send it for signing in one step, with full control over signature requirements.
+| Operation         | Description                                                    |
+| ----------------- | -------------------------------------------------------------- |
+| **Create & Send** | Upload a PDF and send it for signing in one step               |
+| **Get**           | Retrieve a single document by its ID                           |
+| **Get Many**      | List documents with filters (status, date range, search, sort) |
+| **Void**          | Cancel a document and all pending signatures                   |
 
-> **🇲🇽** Sube un PDF (por URL o desde otro nodo) y envíalo a firmar en un solo paso, con control total sobre las validaciones de firma.
+> **🇲🇽** Crea y envía documentos, consulta por ID, lista con filtros, o anula documentos — todo desde n8n.
 
-### 🔐 7 Signature Types / Tipos de Firma
+### 📱 Signers: Email & WhatsApp
 
-| Type                           | Description                                             |
-| ------------------------------ | ------------------------------------------------------- |
-| **Autógrafa**                  | Handwritten digital signature / Firma digital autógrafa |
-| **FEA**                        | Firma Electrónica Avanzada (Mexico)                     |
-| **NOM-151**                    | NOM-151-SCFI certified timestamping (Mexico)            |
-| **Video Signature**            | Recorded video as part of signing                       |
-| **Confirm Name**               | Signer must type their full name                        |
-| **ID Scan**                    | Government-issued ID verification                       |
-| **Biometric Selfie + SynthID** | Selfie verification + AI detection                      |
+Signers can be reached via **email**, **WhatsApp**, or **both**. The system auto-detects the best channel per signer.
+
+- ✅ Email-only signers
+- ✅ WhatsApp-only signers (phone number, no email required)
+- ✅ Both channels — the backend auto-detects per participant
+
+> **🇲🇽** Los firmantes pueden recibir invitaciones por email, WhatsApp o ambos. El sistema detecta automáticamente el mejor canal.
+
+### 🔐 10 Signature Validations / Validaciones de Firma
+
+| Validation                 | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| **Autógrafa**              | Handwritten digital signature with biometric capture (on by default) |
+| **FEA**                    | Firma Electrónica Avanzada (Mexico)                                  |
+| **eIDAS**                  | European Electronic Signature — eIDAS compliance                     |
+| **NOM-151**                | NOM-151-SCFI certified timestamping (Mexico)                         |
+| **Video Signature**        | Recorded video of the signer during the signing process              |
+| **Biometric Selfie**       | Face comparison against the signer's government ID                   |
+| **SynthID (AI Detection)** | Verifies selfie is from a real person, not AI-generated              |
+| **ID Scan**                | Government-issued ID scan (INE, passport, etc.)                      |
+| **Identity Verification**  | AI-powered ID + selfie verification pipeline                         |
+| **Confirm Name**           | Signer must type their full name as confirmation                     |
 
 ### 📥 File Input / Entrada de Archivo
 
-- **Binary Input** — Use a file from a previous node (e.g. Google Drive, HTTP Request)
+- **Binary Input** — Use a file from a previous node (e.g. Google Drive, HTTP Request, Dropbox)
 - **URL** — Provide a public URL to a PDF file
 
-### 🔜 Coming Soon / Próximamente
+### 📐 Signature Field Placement
 
-- Get, List, Download, Delete documents
-- Folders & Contacts management
-- Webhook Triggers (document.signed, document.completed, etc.)
-- Signer & Signature Field management
+Place signature fields precisely on the document:
+
+- **By coordinates** — X, Y position on a specific page (or all pages)
+- **By anchor text** — Search for text in the PDF and place the field there
+
+### ⚙️ Additional Options
+
+| Option                  | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| **Folder Name**         | Organize documents into folders automatically                      |
+| **Expires At**          | Set an expiration deadline — document auto-expires after this date |
+| **Placeholders (DOCX)** | Replace `{{ variables }}` in DOCX templates with dynamic values    |
+
+### 🔔 Trigger Node / Nodo Trigger
+
+Listen for real-time events via webhooks with HMAC signature validation:
+
+| Event                | Description                      |
+| -------------------- | -------------------------------- |
+| `document.signed`    | A signer has signed the document |
+| `document.completed` | All signers have signed          |
+| `document.sent`      | Document was sent for signing    |
+| `document.voided`    | Document was voided/cancelled    |
+
+### 📋 Get Many — Filters
+
+| Filter               | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Search**           | Full-text search in document name                                           |
+| **Signature Status** | RECOLECTANDO_FIRMANTES, ESPERANDO_FIRMAS, TODOS_FIRMARON, EXPIRADO, ANULADO |
+| **Created After**    | Filter by creation date range                                               |
+| **Created Before**   | Filter by creation date range                                               |
+| **Folder ID**        | Filter by folder                                                            |
+| **Sort By**          | created_at, updated_at, name                                                |
+| **Sort Order**       | Ascending or descending                                                     |
 
 ---
 
@@ -75,11 +124,16 @@ npm install n8n-nodes-allsign
 ### 3. Use the Node
 
 1. Add the **AllSign** node to your workflow
-2. Select operation: **Create & Send**
-3. Set the document name and file source (URL or Binary)
-4. Add signers (name + email)
-5. Toggle the signature types you need
-6. Execute!
+2. Select an operation: **Create & Send**, **Get**, **Get Many**, or **Void**
+3. For **Create & Send**:
+   - Set the document name and file source (URL or Binary)
+   - Add signers (name + email and/or WhatsApp number)
+   - Toggle the signature validations you need
+   - Configure notifications (auto-detected channel per signer)
+4. For **Get**: Enter the document ID
+5. For **Get Many**: Set the limit and optional filters
+6. For **Void**: Enter the document ID and optional reason
+7. Execute!
 
 ---
 
@@ -88,7 +142,7 @@ npm install n8n-nodes-allsign
 ### Clone & Install
 
 ```bash
-git clone https://github.com/allsign/n8n-nodes-allsign.git
+git clone https://github.com/httpmfs/n8n-nodes-starter.git n8n-nodes-allsign
 cd n8n-nodes-allsign
 npm install
 ```
@@ -100,7 +154,7 @@ npm install
 | `npm run dev`         | Start n8n with hot reload    |
 | `npm run build`       | Compile TypeScript → `dist/` |
 | `npm run build:watch` | Compile in watch mode        |
-| `npm test`            | Run unit tests (25 tests)    |
+| `npm test`            | Run unit tests (28 tests)    |
 | `npm run lint`        | Check code style             |
 
 ### ☁️ Cloudflare Tunnel (Remote Access / Acceso Remoto)
@@ -110,7 +164,7 @@ To expose your local n8n instance to the internet (useful for webhook testing wi
 > **🇲🇽** Para exponer tu instancia local de n8n al internet (útil para probar webhooks con el backend de AllSign):
 
 ```bash
-cloudflared tunnel run --token eyJhIjoiMjkwN2U1OWYzYzRjOWY3NzgzODFmM2RmODFiZWFhYzMiLCJ0IjoiZTU3NjJlYjItNTEzZC00OGNlLTllN2UtNjU1YzE1MTBlNDE1IiwicyI6IlptVTRNekUyWXprdE56Z3dOeTAwT0RNNExUazJaV010WVdRNE1EWXpaakF3TTJSbSJ9
+cloudflared tunnel run --token <YOUR_TUNNEL_TOKEN>
 ```
 
 > **Note:** Requires `cloudflared` CLI installed. This creates a secure tunnel so external services can reach your `localhost:5678`.
@@ -122,13 +176,16 @@ cloudflared tunnel run --token eyJhIjoiMjkwN2U1OWYzYzRjOWY3NzgzODFmM2RmODFiZWFhY
 ```
 n8n-nodes-allsign/
 ├── credentials/
-│   └── AllSignApi.credentials.ts    # API Key + Base URL credential
+│   └── AllSignApi.credentials.ts        # API Key + Base URL credential
 ├── nodes/
-│   └── Allsign/
-│       ├── Allsign.node.ts          # Main node (Create & Send)
-│       ├── Allsign.node.json        # Codex metadata & SEO
-│       ├── Allsign.node.test.ts     # Unit tests (25 tests)
-│       └── allsign.svg              # Node icon
+│   ├── Allsign/
+│   │   ├── Allsign.node.ts              # Main node (Create, Get, Get Many, Void)
+│   │   ├── Allsign.node.json            # Codex metadata & SEO
+│   │   ├── Allsign.node.test.ts         # Unit tests (28 tests)
+│   │   └── allsign.svg                  # Node icon
+│   └── AllsignTrigger/
+│       ├── AllsignTrigger.node.ts       # Trigger node (webhooks + HMAC)
+│       └── allsign.svg                  # Trigger icon
 ├── package.json
 ├── tsconfig.json
 └── jest.config.js
@@ -144,6 +201,8 @@ n8n-nodes-allsign/
 | TypeScript errors            | Ensure Node.js v22+, run `npm install`     |
 | Connection test fails        | Verify API Key and Base URL in credentials |
 | "Service refused connection" | Check the Base URL matches your backend    |
+| Void returns 400             | Document is already completed or voided    |
+| Get returns 404              | Check document ID and API key permissions  |
 
 ---
 
