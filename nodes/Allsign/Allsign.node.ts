@@ -321,30 +321,7 @@ export class Allsign implements INodeType {
 			},
 
 			// ====================================================
-			// 📨 NOTIFICATIONS (collapsible)
-			// ====================================================
-			{
-				displayName: 'Notifications',
-				name: 'notificationSettings',
-				type: 'collection',
-				placeholder: 'Configure Notifications',
-				default: {},
-				description:
-					'Configure how signers receive their signing links. The channel (email or WhatsApp) is auto-detected per signer. When both are provided, OTP is sent on both channels for dual verification.',
-				options: [
-					{
-						displayName: 'Send Invitations',
-						name: 'sendInvitations',
-						type: 'boolean',
-						default: true,
-						description:
-							'Whether to send signing links to each signer after the document is created. The best channel is auto-detected per signer. Disable to share links manually.',
-					},
-				],
-			},
-
-			// ====================================================
-			// 🔐 SIGNATURE VALIDATIONS (collapsible)
+			// 🛡️ SIGNATURE VALIDATIONS (collapsible)
 			// ====================================================
 			{
 				displayName: 'Signature Validations',
@@ -439,10 +416,50 @@ export class Allsign implements INodeType {
 			},
 
 			// ====================================================
-			// 👥 PERMISSIONS (collapsible)
+			// ⚙️ CONFIGURATION (collapsible)
 			// ====================================================
 			{
-				displayName: 'Permissions',
+				displayName: 'Configuration',
+				name: 'configuration',
+				type: 'collection',
+				placeholder: 'Configure',
+				default: {},
+				description:
+					'Controls the invitation flow, expiration, and template variables',
+				options: [
+					{
+						displayName: 'Expires At',
+						name: 'expiresAt',
+						type: 'dateTime',
+						default: '',
+						description:
+							'Optional expiration deadline (ISO 8601). After this date, the document expires and can no longer be signed.',
+					},
+					{
+						displayName: 'Send Invitations',
+						name: 'sendInvitations',
+						type: 'boolean',
+						default: true,
+						description:
+							'Whether to send signing links to each signer after the document is created. The best channel (email or WhatsApp) is auto-detected per signer. When both are provided, OTP is sent on both channels for dual verification. Disable to share links manually.',
+					},
+					{
+						displayName: 'Template Variables (DOCX)',
+						name: 'templateVariables',
+						type: 'json',
+						default: '{}',
+						placeholder: '{"client_name": "Juan Pérez", "amount": "$10,000"}',
+						description:
+							'Key-value pairs to replace variables in DOCX templates (e.g. {{ client_name }} → "Juan Pérez"). Only applied for .docx files; ignored for PDFs.',
+					},
+				],
+			},
+
+			// ====================================================
+			// 🔐 PERMISSIONS (collapsible)
+			// ====================================================
+			{
+				displayName: 'Permissions (Optional)',
 				name: 'permissions',
 				type: 'collection',
 				placeholder: 'Configure Permissions',
@@ -451,15 +468,6 @@ export class Allsign implements INodeType {
 					'Define the document owner and collaborators with granular access control',
 				options: [
 					{
-						displayName: 'Owner Email',
-						name: 'ownerEmail',
-						type: 'string',
-						default: '',
-						placeholder: 'e.g. legal@company.com',
-						description:
-							'Email of the document owner. If omitted, the owner will be the user associated with the API key.',
-					},
-					{
 						displayName: 'Collaborators',
 						name: 'collaborators',
 						type: 'json',
@@ -467,6 +475,15 @@ export class Allsign implements INodeType {
 						placeholder: '[{"email": "cfo@company.com", "permissions": ["read", "sign"]}]',
 						description:
 							'List of collaborators with specific permissions. Each has an email and a permissions array. Valid permissions: read, update, delete, sign, admin. A collaborator cannot also be a signer.',
+					},
+					{
+						displayName: 'Owner Email',
+						name: 'ownerEmail',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. legal@company.com',
+						description:
+							'Email of the document owner. If omitted, the owner will be the user associated with the API key.',
 					},
 					{
 						displayName: 'Public Read',
@@ -480,25 +497,17 @@ export class Allsign implements INodeType {
 			},
 
 			// ====================================================
-			// ⚙️ ADDITIONAL OPTIONS (collapsible)
+			// 📁 FOLDER (collapsible)
 			// ====================================================
 			{
-				displayName: 'Additional Options',
-				name: 'additionalOptions',
+				displayName: 'Folder (Optional)',
+				name: 'folderSettings',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Configure Folder',
 				default: {},
 				description:
-					'Additional configuration for the document',
+					'Organize the document into a folder. Use either Folder ID or Folder Name — they are mutually exclusive.',
 				options: [
-					{
-						displayName: 'Expires At',
-						name: 'expiresAt',
-						type: 'dateTime',
-						default: '',
-						description:
-							'Optional expiration deadline (ISO 8601). After this date, the document expires and can no longer be signed.',
-					},
 					{
 						displayName: 'Folder ID',
 						name: 'folderId',
@@ -506,7 +515,7 @@ export class Allsign implements INodeType {
 						default: '',
 						placeholder: 'e.g. 550e8400-e29b-41d4-a716-446655440000',
 						description:
-							'ID of the folder where the document will be stored. Mutually exclusive with Folder Name — use one or the other.',
+							'UUID of an existing folder.',
 					},
 					{
 						displayName: 'Folder Name',
@@ -515,16 +524,7 @@ export class Allsign implements INodeType {
 						default: '',
 						placeholder: 'e.g. Contracts 2026',
 						description:
-							'Name of the folder where the document will be stored. Mutually exclusive with Folder ID — use one or the other.',
-					},
-					{
-						displayName: 'Template Variables (DOCX)',
-						name: 'templateVariables',
-						type: 'json',
-						default: '{}',
-						placeholder: '{"client_name": "Juan Pérez", "amount": "$10,000"}',
-						description:
-							'Key-value pairs to replace variables in DOCX templates (e.g. {{ client_name }} → "Juan Pérez"). Only applied for .docx files; ignored for PDFs.',
+							'Name of the folder. If it doesn\'t exist, it will be created automatically',
 					},
 				],
 			},
@@ -555,9 +555,11 @@ export class Allsign implements INodeType {
 					phoneNumber?: string;
 				}>;
 
-				// Notifications (simplified — channel auto-detected by backend)
-				const notifSettings = this.getNodeParameter('notificationSettings', i, {}) as IDataObject;
-				const sendInvitations = (notifSettings.sendInvitations as boolean) ?? true;
+				// Configuration (from collapsible collection)
+				const configSettings = this.getNodeParameter('configuration', i, {}) as IDataObject;
+				const sendInvitations = (configSettings.sendInvitations as boolean) ?? true;
+				const expiresAt = (configSettings.expiresAt as string) ?? '';
+				const templateVarsRaw = (configSettings.templateVariables as string) ?? '{}';
 
 				// Signature Validations (from collapsible collection)
 				const sigValidations = this.getNodeParameter('signatureValidations', i, {}) as IDataObject;
@@ -588,12 +590,10 @@ export class Allsign implements INodeType {
 					height?: number;
 				}>;
 
-				// Additional Options (from collapsible collection)
-				const additionalOpts = this.getNodeParameter('additionalOptions', i, {}) as IDataObject;
-				const folderId = (additionalOpts.folderId as string) ?? '';
-				const folderName = (additionalOpts.folderName as string) ?? '';
-				const expiresAt = (additionalOpts.expiresAt as string) ?? '';
-				const templateVarsRaw = (additionalOpts.templateVariables as string) ?? '{}';
+				// Folder (from collapsible collection)
+				const folderOpts = this.getNodeParameter('folderSettings', i, {}) as IDataObject;
+				const folderId = (folderOpts.folderId as string) ?? '';
+				const folderName = (folderOpts.folderName as string) ?? '';
 
 				// Parse template variables JSON
 				let templateVariables: Record<string, string> | undefined;

@@ -64,36 +64,42 @@ describe('AllSign Node', () => {
 			expect(operationProp).toBeUndefined();
 		});
 
-		it('should have collapsible collections for Notifications, Signature Validations, and Additional Options', () => {
-			const notifSettings = node.description.properties.find(
-				(p) => p.name === 'notificationSettings',
+		it('should have collapsible collections for Configuration, Signature Validations, Permissions, and Folder', () => {
+			const config = node.description.properties.find(
+				(p) => p.name === 'configuration',
 			);
 			const sigValidations = node.description.properties.find(
 				(p) => p.name === 'signatureValidations',
 			);
-			const additionalOpts = node.description.properties.find(
-				(p) => p.name === 'additionalOptions',
+			const permissions = node.description.properties.find(
+				(p) => p.name === 'permissions',
 			);
-			expect(notifSettings).toBeDefined();
-			expect((notifSettings as any).type).toBe('collection');
+			const folder = node.description.properties.find(
+				(p) => p.name === 'folderSettings',
+			);
+			expect(config).toBeDefined();
+			expect((config as any).type).toBe('collection');
 			expect(sigValidations).toBeDefined();
 			expect((sigValidations as any).type).toBe('collection');
-			expect(additionalOpts).toBeDefined();
-			expect((additionalOpts as any).type).toBe('collection');
+			expect(permissions).toBeDefined();
+			expect((permissions as any).type).toBe('collection');
+			expect(folder).toBeDefined();
+			expect((folder as any).type).toBe('collection');
 		});
 
-		it('should have binary option in file source and folder name inside additional options', () => {
+		it('should have binary option in file source and folder name inside folder settings', () => {
 			const fileSourceProp = node.description.properties.find(
 				(p) => p.name === 'fileSource',
 			);
 			const fileSourceOptions = (fileSourceProp as any).options.map((o: any) => o.value);
 			expect(fileSourceOptions).toContain('binary');
 
-			const additionalOpts = node.description.properties.find(
-				(p) => p.name === 'additionalOptions',
+			const folderOpts = node.description.properties.find(
+				(p) => p.name === 'folderSettings',
 			);
-			const additionalOptions = (additionalOpts as any).options.map((o: any) => o.name);
-			expect(additionalOptions).toContain('folderName');
+			const folderOptions = (folderOpts as any).options.map((o: any) => o.name);
+			expect(folderOptions).toContain('folderName');
+			expect(folderOptions).toContain('folderId');
 		});
 
 		it('should have codex aliases for discoverability including WhatsApp', () => {
@@ -120,7 +126,7 @@ describe('AllSign Node', () => {
 			expect(sigOptions).toContain('verifyAutografa');
 
 			const notifSettings = node.description.properties.find(
-				(p) => p.name === 'notificationSettings',
+				(p) => p.name === 'configuration',
 			);
 			const notifOptions = (notifSettings as any).options.map((o: any) => o.name);
 			expect(notifOptions).not.toContain('verifyAutografa');
@@ -136,7 +142,7 @@ describe('AllSign Node', () => {
 
 		it('should NOT have deprecated sendByEmail/sendByWhatsapp in Notifications', () => {
 			const notifSettings = node.description.properties.find(
-				(p) => p.name === 'notificationSettings',
+				(p) => p.name === 'configuration',
 			);
 			const notifOptions = (notifSettings as any).options.map((o: any) => o.name);
 			expect(notifOptions).not.toContain('sendByEmail');
@@ -153,15 +159,14 @@ describe('AllSign Node', () => {
 			expect(emailField.required).toBeUndefined();
 		});
 
-		it('should have expiresAt, templateVariables, folderId, and folderName in Additional Options', () => {
-			const additionalOpts = node.description.properties.find(
-				(p) => p.name === 'additionalOptions',
+		it('should have sendInvitations, expiresAt, and templateVariables in Configuration', () => {
+			const config = node.description.properties.find(
+				(p) => p.name === 'configuration',
 			);
-			const optNames = (additionalOpts as any).options.map((o: any) => o.name);
+			const optNames = (config as any).options.map((o: any) => o.name);
+			expect(optNames).toContain('sendInvitations');
 			expect(optNames).toContain('expiresAt');
 			expect(optNames).toContain('templateVariables');
-			expect(optNames).toContain('folderName');
-			expect(optNames).toContain('folderId');
 		});
 
 		it('should have Permissions collection with ownerEmail, collaborators, isPublicRead', () => {
@@ -192,7 +197,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/contract.pdf',
 				'signers.signerValues': [{ name: 'John', email: 'john@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: { verifyAutografa: true },
 			});
 
@@ -251,7 +256,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/simple.pdf',
 				'signers.signerValues': [{ name: 'Jane', email: 'jane@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -271,7 +276,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/draft.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -301,7 +306,7 @@ describe('AllSign Node', () => {
 				fileSource: 'binary',
 				binaryProperty: 'data',
 				'signers.signerValues': [{ name: 'Bob', email: 'bob@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -338,7 +343,7 @@ describe('AllSign Node', () => {
 				fileSource: 'binary',
 				binaryProperty: 'data',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
 			});
 
@@ -368,7 +373,7 @@ describe('AllSign Node', () => {
 					countryCode: '+52',
 					phoneNumber: '5512345678',
 				}],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -398,7 +403,7 @@ describe('AllSign Node', () => {
 					countryCode: '+52',
 					phoneNumber: '5598765432',
 				}],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -425,7 +430,7 @@ describe('AllSign Node', () => {
 					email: '',
 					phoneNumber: '',
 				}],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -450,7 +455,7 @@ describe('AllSign Node', () => {
 					countryCode: '+1',
 					phoneNumber: '2125551234',
 				}],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -480,7 +485,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {
 					verifyVideo: true,
 					verifyBiometricSelfie: true,
@@ -504,7 +509,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {
 					verifyAutografa: true,
 					verifyFea: true,
@@ -539,7 +544,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {
 					verifyIdentity: true,
 					verifyIdScan: true,
@@ -565,7 +570,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -589,11 +594,11 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/template.docx',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
-				signatureValidations: {},
-				additionalOptions: {
+				configuration: {
+					sendInvitations: false,
 					templateVariables: '{"client_name": "Juan", "amount": "$10,000"}',
 				},
+				signatureValidations: {},
 			});
 
 			await node.execute.call(fn);
@@ -613,7 +618,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
 			});
 
@@ -632,11 +637,11 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
-				signatureValidations: {},
-				additionalOptions: {
+				configuration: {
+					sendInvitations: false,
 					expiresAt: '2026-04-01T00:00:00Z',
 				},
+				signatureValidations: {},
 			});
 
 			await node.execute.call(fn);
@@ -654,9 +659,9 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
-				additionalOptions: {
+				folderSettings: {
 					folderId: 'folder-uuid-123',
 					folderName: 'Contracts',
 				},
@@ -678,7 +683,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
 				permissions: {
 					ownerEmail: 'legal@company.com',
@@ -705,7 +710,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
 			});
 
@@ -734,7 +739,7 @@ describe('AllSign Node', () => {
 					{ name: 'Bob', email: 'bob@test.com' },
 					{ name: 'Charlie', email: 'charlie@test.com' },
 				],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -770,7 +775,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -795,7 +800,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 			(fn as any).getCredentials = async () => ({
@@ -817,7 +822,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 			(fn as any).getCredentials = async () => ({
@@ -845,7 +850,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -860,7 +865,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/nonexistent.pdf',
 				'signers.signerValues': [{ name: 'Test', email: 'test@test.com' }],
-				notificationSettings: { sendInvitations: true },
+				configuration: { sendInvitations: true },
 				signatureValidations: {},
 			});
 
@@ -875,7 +880,7 @@ describe('AllSign Node', () => {
 				fileSource: 'url',
 				fileUrl: 'https://example.com/doc.pdf',
 				'signers.signerValues': [],
-				notificationSettings: { sendInvitations: false },
+				configuration: { sendInvitations: false },
 				signatureValidations: {},
 			});
 			(fn as any).continueOnFail = () => true;
