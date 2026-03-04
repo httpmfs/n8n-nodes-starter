@@ -6,34 +6,29 @@
 
 [n8n](https://n8n.io) community node for the **[AllSign](https://allsign.io)** e-signature platform.
 
-Create, retrieve, and manage documents for electronic signature directly from your n8n workflows using the AllSign API V2.
+Create and send documents for electronic signature directly from your n8n workflows using the AllSign API V2.
 
-> **🇲🇽 Español:** Nodo comunitario de n8n para firma electrónica con AllSign. Crea, consulta y gestiona documentos a firmar desde workflows de n8n.
+> **🇲🇽 Español:** Nodo comunitario de n8n para firma electrónica con AllSign. Crea y envía documentos a firmar desde workflows de n8n.
 
 ---
 
 ## ✨ Features / Características
 
-### 📄 4 Operations / Operaciones
+### 📄 Document — Create & Send
 
-| Operation         | Description                                                    |
-| ----------------- | -------------------------------------------------------------- |
-| **Create & Send** | Upload a PDF and send it for signing in one step               |
-| **Get**           | Retrieve a single document by its ID                           |
-| **Get Many**      | List documents with filters (status, date range, search, sort) |
-| **Void**          | Cancel a document and all pending signatures                   |
+Upload a PDF (from URL or binary input) and send it for signing in one step, with full control over signature requirements.
 
-> **🇲🇽** Crea y envía documentos, consulta por ID, lista con filtros, o anula documentos — todo desde n8n.
+> **🇲🇽** Sube un PDF (por URL o desde otro nodo) y envíalo a firmar en un solo paso, con control total sobre las validaciones de firma.
 
 ### 📱 Signers: Email & WhatsApp
 
-Signers can be reached via **email**, **WhatsApp**, or **both**. The system auto-detects the best channel per signer.
+Signers can be reached via **email**, **WhatsApp**, or **both**. When both channels are provided, the signer verifies their identity through OTP on both channels as part of the signing process.
 
 - ✅ Email-only signers
 - ✅ WhatsApp-only signers (phone number, no email required)
-- ✅ Both channels — the backend auto-detects per participant
+- ✅ Both channels — dual OTP verification during signing
 
-> **🇲🇽** Los firmantes pueden recibir invitaciones por email, WhatsApp o ambos. El sistema detecta automáticamente el mejor canal.
+> **🇲🇽** Los firmantes pueden recibir invitaciones por email, WhatsApp o ambos. Cuando se proporcionan ambos, el firmante verifica su identidad por OTP en los dos canales como parte de la firma.
 
 ### 🔐 10 Signature Validations / Validaciones de Firma
 
@@ -81,18 +76,6 @@ Listen for real-time events via webhooks with HMAC signature validation:
 | `document.sent`      | Document was sent for signing    |
 | `document.voided`    | Document was voided/cancelled    |
 
-### 📋 Get Many — Filters
-
-| Filter               | Description                                                                 |
-| -------------------- | --------------------------------------------------------------------------- |
-| **Search**           | Full-text search in document name                                           |
-| **Signature Status** | RECOLECTANDO_FIRMANTES, ESPERANDO_FIRMAS, TODOS_FIRMARON, EXPIRADO, ANULADO |
-| **Created After**    | Filter by creation date range                                               |
-| **Created Before**   | Filter by creation date range                                               |
-| **Folder ID**        | Filter by folder                                                            |
-| **Sort By**          | created_at, updated_at, name                                                |
-| **Sort Order**       | Ascending or descending                                                     |
-
 ---
 
 ## 🚀 Getting Started / Cómo empezar
@@ -124,16 +107,11 @@ npm install n8n-nodes-allsign
 ### 3. Use the Node
 
 1. Add the **AllSign** node to your workflow
-2. Select an operation: **Create & Send**, **Get**, **Get Many**, or **Void**
-3. For **Create & Send**:
-   - Set the document name and file source (URL or Binary)
-   - Add signers (name + email and/or WhatsApp number)
-   - Toggle the signature validations you need
-   - Configure notifications (auto-detected channel per signer)
-4. For **Get**: Enter the document ID
-5. For **Get Many**: Set the limit and optional filters
-6. For **Void**: Enter the document ID and optional reason
-7. Execute!
+2. Set the document name and file source (URL or Binary)
+3. Add signers (name + email and/or WhatsApp number)
+4. Toggle the signature validations you need
+5. Configure notifications (channel is auto-detected per signer)
+6. Execute!
 
 ---
 
@@ -154,7 +132,7 @@ npm install
 | `npm run dev`         | Start n8n with hot reload    |
 | `npm run build`       | Compile TypeScript → `dist/` |
 | `npm run build:watch` | Compile in watch mode        |
-| `npm test`            | Run unit tests (28 tests)    |
+| `npm test`            | Run unit tests (34 tests)    |
 | `npm run lint`        | Check code style             |
 
 ### ☁️ Cloudflare Tunnel (Remote Access / Acceso Remoto)
@@ -179,9 +157,9 @@ n8n-nodes-allsign/
 │   └── AllSignApi.credentials.ts        # API Key + Base URL credential
 ├── nodes/
 │   ├── Allsign/
-│   │   ├── Allsign.node.ts              # Main node (Create, Get, Get Many, Void)
+│   │   ├── Allsign.node.ts              # Main node (Create & Send)
 │   │   ├── Allsign.node.json            # Codex metadata & SEO
-│   │   ├── Allsign.node.test.ts         # Unit tests (28 tests)
+│   │   ├── Allsign.node.test.ts         # Unit tests (34 tests)
 │   │   └── allsign.svg                  # Node icon
 │   └── AllsignTrigger/
 │       ├── AllsignTrigger.node.ts       # Trigger node (webhooks + HMAC)
@@ -201,8 +179,6 @@ n8n-nodes-allsign/
 | TypeScript errors            | Ensure Node.js v22+, run `npm install`     |
 | Connection test fails        | Verify API Key and Base URL in credentials |
 | "Service refused connection" | Check the Base URL matches your backend    |
-| Void returns 400             | Document is already completed or voided    |
-| Get returns 404              | Check document ID and API key permissions  |
 
 ---
 
@@ -210,6 +186,7 @@ n8n-nodes-allsign/
 
 - [AllSign Platform](https://allsign.io)
 - [AllSign API Docs](https://docs.allsign.io)
+- [AllSign API Playground](https://developers.allsign.io/api-playground/create-document)
 - [n8n Node Development Guide](https://docs.n8n.io/integrations/creating-nodes/)
 - [n8n Community Forum](https://community.n8n.io/)
 
