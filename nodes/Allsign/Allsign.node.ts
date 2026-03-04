@@ -143,50 +143,15 @@ export class Allsign implements INodeType {
 								default: '',
 								description: 'Email address of the signer. Optional if WhatsApp is provided. When both are given, the signer verifies via OTP on both channels.',
 							},
-							{
-								displayName: 'Country Code',
-								name: 'countryCode',
-								type: 'options',
-								default: '+52',
-								description: "Country code for the signer's WhatsApp number",
-								options: [
-									{ name: '🇦🇷 Argentina (+54)', value: '+54' },
-									{ name: '🇧🇷 Brazil (+55)', value: '+55' },
-									{ name: '🇨🇱 Chile (+56)', value: '+56' },
-									{ name: '🇨🇴 Colombia (+57)', value: '+57' },
-									{ name: '🇨🇷 Costa Rica (+506)', value: '+506' },
-									{ name: '🇪🇨 Ecuador (+593)', value: '+593' },
-									{ name: '🇪🇸 Spain (+34)', value: '+34' },
-									{ name: '🇬🇹 Guatemala (+502)', value: '+502' },
-									{ name: '🇲🇽 Mexico (+52)', value: '+52' },
-									{ name: '🇵🇦 Panama (+507)', value: '+507' },
-									{ name: '🇵🇪 Peru (+51)', value: '+51' },
-									{ name: '🇺🇸 United States (+1)', value: '+1' },
-									{ name: '🔢 Custom', value: 'custom' },
-								],
-							},
-							{
-								displayName: 'Custom Country Code',
-								name: 'customCountryCode',
-								type: 'string',
-								default: '',
-								placeholder: '+44',
-								description: 'Enter the country code manually (e.g. +44 for UK)',
-								displayOptions: {
-									show: {
-										countryCode: ['custom'],
-									},
-								},
-							},
-							{
-								displayName: 'Phone Number',
-								name: 'phoneNumber',
-								type: 'string',
-								default: '',
-								placeholder: '5512345678',
-								description:
-									'WhatsApp phone number without country code. Required if email is not provided.',
-							},
+                                                        {
+                                                                displayName: 'WhatsApp',
+                                                                name: 'whatsapp',
+                                                                type: 'string',
+                                                                default: '',
+                                                                placeholder: '+525512345678',
+                                                                description:
+                                                                        'WhatsApp number with country code (e.g. +525512345678). Optional if email is provided. When both are given, dual-channel OTP verification is enabled.',
+                                                        },
 						],
 					},
 				],
@@ -550,9 +515,7 @@ export class Allsign implements INodeType {
 				const signersData = this.getNodeParameter('signers.signerValues', i, []) as Array<{
 					name: string;
 					email?: string;
-					countryCode?: string;
-					customCountryCode?: string;
-					phoneNumber?: string;
+					whatsapp?: string;
 				}>;
 
 				// Configuration (from collapsible collection)
@@ -671,11 +634,8 @@ export class Allsign implements INodeType {
 						participant.email = signer.email.trim();
 					}
 
-					if (signer.phoneNumber && signer.phoneNumber.trim() !== '') {
-						const code = signer.countryCode === 'custom'
-							? (signer.customCountryCode || '+52')
-							: (signer.countryCode || '+52');
-						participant.whatsapp = `${code}${signer.phoneNumber.trim()}`;
+					if (signer.whatsapp && signer.whatsapp.trim() !== '') {
+						participant.whatsapp = signer.whatsapp.trim();
 					}
 
 					if (!participant.email && !participant.whatsapp) {

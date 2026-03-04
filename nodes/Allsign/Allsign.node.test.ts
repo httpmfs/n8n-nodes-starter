@@ -370,8 +370,7 @@ describe('AllSign Node', () => {
 				'signers.signerValues': [{
 					name: 'Carlos',
 					email: '',
-					countryCode: '+52',
-					phoneNumber: '5512345678',
+					whatsapp: '+525512345678',
 				}],
 				configuration: { sendInvitations: true },
 				signatureValidations: {},
@@ -400,8 +399,7 @@ describe('AllSign Node', () => {
 				'signers.signerValues': [{
 					name: 'Maria',
 					email: 'maria@test.com',
-					countryCode: '+52',
-					phoneNumber: '5598765432',
+					whatsapp: '+525598765432',
 				}],
 				configuration: { sendInvitations: true },
 				signatureValidations: {},
@@ -428,7 +426,7 @@ describe('AllSign Node', () => {
 				'signers.signerValues': [{
 					name: 'NoContact',
 					email: '',
-					phoneNumber: '',
+					whatsapp: '',
 				}],
 				configuration: { sendInvitations: true },
 				signatureValidations: {},
@@ -452,8 +450,7 @@ describe('AllSign Node', () => {
 				'signers.signerValues': [{
 					name: 'Luis',
 					email: '',
-					countryCode: '+1',
-					phoneNumber: '2125551234',
+					whatsapp: '+12125551234',
 				}],
 				configuration: { sendInvitations: true },
 				signatureValidations: {},
